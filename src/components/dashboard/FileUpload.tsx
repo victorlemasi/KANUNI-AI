@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, Download, FileCode } from "lucide-react";
 import { processProcurementDocument } from "@/app/actions/analyze";
@@ -111,23 +109,42 @@ AUDIT TRAIL:
 
                 {/* Analysis Mode Toggle */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 py-2 bg-white/5 p-1 rounded-xl">
-                    {[
-                        { id: 'procurement', label: 'Procurement', color: 'primary' },
-                        { id: 'contract', label: 'Contract', color: 'accent' },
-                        { id: 'fraud', label: 'Fraud', color: 'error' },
-                        { id: 'audit', label: 'Audit', color: 'success' }
-                    ].map((mode) => (
-                        <button
-                            key={mode.id}
-                            onClick={() => setAnalysisType(mode.id as any)}
-                            className={`px-3 py-2 text-[10px] md:text-xs font-bold rounded-lg transition-all uppercase tracking-wider ${analysisType === mode.id
-                                ? `bg-${mode.color}-500 text-white shadow-lg shadow-${mode.color}-500/30 scale-105`
+                    <button
+                        onClick={() => setAnalysisType('procurement')}
+                        className={`px-3 py-2 text-[10px] md:text-xs font-bold rounded-lg transition-all uppercase tracking-wider ${analysisType === 'procurement'
+                                ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30 scale-105'
                                 : 'text-neutral-400 hover:bg-white/5 hover:text-white'
-                                }`}
-                        >
-                            {mode.label}
-                        </button>
-                    ))}
+                            }`}
+                    >
+                        Procurement
+                    </button>
+                    <button
+                        onClick={() => setAnalysisType('contract')}
+                        className={`px-3 py-2 text-[10px] md:text-xs font-bold rounded-lg transition-all uppercase tracking-wider ${analysisType === 'contract'
+                                ? 'bg-accent-500 text-white shadow-lg shadow-accent-500/30 scale-105'
+                                : 'text-neutral-400 hover:bg-white/5 hover:text-white'
+                            }`}
+                    >
+                        Contract
+                    </button>
+                    <button
+                        onClick={() => setAnalysisType('fraud')}
+                        className={`px-3 py-2 text-[10px] md:text-xs font-bold rounded-lg transition-all uppercase tracking-wider ${analysisType === 'fraud'
+                                ? 'bg-error-500 text-white shadow-lg shadow-error-500/30 scale-105'
+                                : 'text-neutral-400 hover:bg-white/5 hover:text-white'
+                            }`}
+                    >
+                        Fraud
+                    </button>
+                    <button
+                        onClick={() => setAnalysisType('audit')}
+                        className={`px-3 py-2 text-[10px] md:text-xs font-bold rounded-lg transition-all uppercase tracking-wider ${analysisType === 'audit'
+                                ? 'bg-success-500 text-white shadow-lg shadow-success-500/30 scale-105'
+                                : 'text-neutral-400 hover:bg-white/5 hover:text-white'
+                            }`}
+                    >
+                        Audit
+                    </button>
                 </div>
 
                 <input
@@ -154,9 +171,9 @@ AUDIT TRAIL:
                     <button
                         onClick={handleUpload}
                         className={`block w-full py-4 rounded-xl font-black text-sm transition-all shadow-xl uppercase tracking-widest relative overflow-hidden group ${analysisType === 'procurement' ? 'bg-gradient-to-r from-primary-600 to-primary-500 shadow-primary-600/20' :
-                            analysisType === 'contract' ? 'bg-gradient-to-r from-accent-600 to-accent-500 shadow-accent-600/20' :
-                                analysisType === 'fraud' ? 'bg-gradient-to-r from-error-600 to-error-500 shadow-error-600/20' :
-                                    'bg-gradient-to-r from-success-600 to-success-500 shadow-success-600/20'
+                                analysisType === 'contract' ? 'bg-gradient-to-r from-accent-600 to-accent-500 shadow-accent-600/20' :
+                                    analysisType === 'fraud' ? 'bg-gradient-to-r from-error-600 to-error-500 shadow-error-600/20' :
+                                        'bg-gradient-to-r from-success-600 to-success-500 shadow-success-600/20'
                             } hover:scale-[1.02] active:scale-[0.98]`}
                     >
                         <span className="relative z-10 flex items-center justify-center gap-2">
