@@ -4,7 +4,10 @@ let classifier: any = null;
 
 export async function getClassifier() {
     if (!classifier) {
-
+        console.log("Loading BERT model (Xenova/mobilebert-uncased-mnli)...");
+        // Using a lightweight BERT model for zero-shot classification
+        classifier = await pipeline("zero-shot-classification", "Xenova/mobilebert-uncased-mnli");
+        console.log("BERT model loaded successfully.");
     }
     return classifier;
 }
