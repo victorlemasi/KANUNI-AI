@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "KANUNI AI - Governance Intelligence, Decision Certainty",
-  description: "AI-powered governance and compliance intelligence platform for Africa",
+  title: "KANUNI AI - Document Analysis",
+  description: "Advanced governance and compliance intelligence analysis.",
 };
 
 export default function RootLayout({
@@ -13,7 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">
+      <body className="antialiased bg-[#020617]">
         {children}
       </body>
     </html>
