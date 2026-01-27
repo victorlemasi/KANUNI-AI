@@ -170,8 +170,16 @@ AUDIT TRAIL:
                 {isUploading && (
                     <div className="flex flex-col items-center justify-center space-y-4 py-8 animate-in fade-in duration-500">
                         <div className="relative">
-                            <div className={`absolute inset-0 bg-${analysisType === 'procurement' ? 'primary' : analysisType === 'contract' ? 'accent' : analysisType === 'fraud' ? 'error' : 'success'}-500/20 blur-xl rounded-full animate-pulse`}></div>
-                            <Loader2 className={`w-12 h-12 animate-spin text-${analysisType === 'procurement' ? 'primary' : analysisType === 'contract' ? 'accent' : analysisType === 'fraud' ? 'error' : 'success'}-500 relative z-10`} />
+                            <div className={`absolute inset-0 blur-xl rounded-full animate-pulse ${analysisType === 'procurement' ? 'bg-primary-500/20' :
+                                    analysisType === 'contract' ? 'bg-accent-500/20' :
+                                        analysisType === 'fraud' ? 'bg-error-500/20' :
+                                            'bg-success-500/20'
+                                }`}></div>
+                            <Loader2 className={`w-12 h-12 animate-spin relative z-10 ${analysisType === 'procurement' ? 'text-primary-500' :
+                                    analysisType === 'contract' ? 'text-accent-500' :
+                                        analysisType === 'fraud' ? 'text-error-500' :
+                                            'text-success-500'
+                                }`} />
                         </div>
                         <div className="space-y-1">
                             <div className="text-sm font-black text-white tracking-widest uppercase animate-pulse">
