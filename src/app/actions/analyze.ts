@@ -1,6 +1,6 @@
 "use server";
 
-import pdf from "pdf-parse";
+const pdf = require("pdf-parse");
 import { analyzeText } from "@/lib/analysis";
 import sharp from "sharp";
 
