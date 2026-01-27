@@ -42,7 +42,9 @@ export async function processProcurementDocument(formData: FormData) {
   console.log(`Text extracted (${text.length} characters). Starting AI analysis...`);
 
   // 2. Perform BERT Analysis
-  const analysis = await analyzeText(text);
+  const analysisType = (formData.get("analysisType") as 'procurement' | 'contract') || 'procurement';
+  console.log(`Running AI Analysis [Mode: ${analysisType}]...`);
+  const analysis = await analyzeText(text, analysisType);
 
   console.log("AI analysis complete.");
 

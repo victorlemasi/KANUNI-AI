@@ -6,6 +6,7 @@ import { processProcurementDocument } from "@/app/actions/analyze";
 
 export default function FileUpload() {
     const [file, setFile] = useState<File | null>(null);
+    const [analysisType, setAnalysisType] = useState<'procurement' | 'contract'>('procurement');
     const [isUploading, setIsUploading] = useState(false);
     const [result, setResult] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
@@ -32,6 +33,7 @@ export default function FileUpload() {
 
         const formData = new FormData();
         formData.append("file", file);
+        formData.append("analysisType", analysisType);
 
         try {
             const data = await processProcurementDocument(formData);
@@ -104,7 +106,29 @@ AUDIT TRAIL:
                 </div>
                 <div>
                     <h3 className="text-lg font-bold uppercase tracking-wider">Multi-Format Compliance Intake</h3>
-                    <p className="text-neutral-500 text-sm">Upload PDF or Word (.docx) for Institutional Analysis</p>
+                    <p className="text-neutral-500 text-sm">Select Analysis Mode & Upload Document</p>
+                </div>
+
+                {/* Analysis Mode Toggle */}
+                <div className="flex justify-center gap-4 py-2">
+                    <button
+                        onClick={() => setAnalysisType('procurement')}
+                        className={`px-4 py-2 text-xs font-bold rounded-lg border transition-all uppercase tracking-wider ${analysisType === 'procurement'
+                                ? 'bg-primary-600/20 border-primary-500 text-primary-400'
+                                : 'bg-white/5 border-white/10 text-neutral-500 hover:bg-white/10'
+                            }`}
+                    >
+                        Standard Procurement
+                    </button>
+                    <button
+                        onClick={() => setAnalysisType('contract')}
+                        className={`px-4 py-2 text-xs font-bold rounded-lg border transition-all uppercase tracking-wider ${analysisType === 'contract'
+                                ? 'bg-accent-600/20 border-accent-500 text-accent-400'
+                                : 'bg-white/5 border-white/10 text-neutral-500 hover:bg-white/10'
+                            }`}
+                    >
+                        Contract Review
+                    </button>
                 </div>
 
                 <input
@@ -132,7 +156,7 @@ AUDIT TRAIL:
                         onClick={handleUpload}
                         className="block w-full py-3 bg-primary-600 hover:bg-primary-500 rounded-xl font-bold transition-all shadow-lg shadow-primary-600/20"
                     >
-                        START ADVANCED ANALYSIS
+                        START {analysisType === 'contract' ? 'CONTRACT REVIEW' : 'ADVANCED ANALYSIS'}
                     </button>
                 )}
 
@@ -143,7 +167,7 @@ AUDIT TRAIL:
                             EXTRACTING & CLASSIFYING...
                         </div>
                         <p className="text-[10px] text-neutral-500 uppercase tracking-widest text-center max-w-xs">
-                            BERT model is running inference on institutional data against PFM frameworks
+                            BERT model is running inference on {analysisType === 'contract' ? 'legal clauses' : 'institutional data'}
                         </p>
                     </div>
                 )}
