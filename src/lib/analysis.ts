@@ -12,7 +12,7 @@ export async function getClassifier() {
     return classifier;
 }
 
-export async function analyzeText(text: string, type: 'procurement' | 'contract' | 'fraud' = 'procurement') {
+export async function analyzeText(text: string, type: 'procurement' | 'contract' | 'fraud' | 'audit' = 'procurement') {
     const classifier = await getClassifier();
 
     let labels: string[] = [];
@@ -87,6 +87,47 @@ export async function analyzeText(text: string, type: 'procurement' | 'contract'
         }
 
         riskScore = Math.min(riskScore, 99); // Cap at 99
+
+    } else if (type === 'audit') {
+        // Internal Audit Mode: Evidence Readiness
+        riskScore = 5; // Baseline low risk
+        topConcern = "Audit readiness verification";
+
+        const evidence = [];
+        const requiredEvidence = [
+            { label: "Invoice Number", regex: /(invoice|ref|receipt)\s*[:#]?\s*\w+/i },
+            { label: "Date", regex: /\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s\d{1,2},?\s\d{4}\b/i },
+            { label: "Total Amount", regex: /\b(total|amount|due)\s*[:#]?\s*[\$€£]?\s*\d{1,3}(,\d{3})*(\.\d{2})?\b/i }
+        ];
+
+        requiredEvidence.forEach(req => {
+            if (req.regex.test(text)) {
+                evidence.push(`[MATCH] Found ${req.label}`);
+            } else {
+                evidence.push(`[MISSING] No ${req.label} detected`);
+                riskScore += 25; // Significant penalty for missing core evidence
+                suggestions.push(`Missing Audit Evidence: Please locate and verify ${req.label}.`);
+            }
+        });
+
+        // Heuristic for signatures
+        if (/signed by|approved by|authorized signature/i.test(text)) {
+            evidence.push("[MATCH] Approval Signature detected");
+        } else {
+            evidence.push("[MISSING] No Signature/Approval detected");
+            riskScore += 15;
+            suggestions.push("Document lacks visible approval signature.");
+        }
+
+        if (riskScore > 30) {
+            topConcern = "Incomplete Audit Trail";
+        } else {
+            topConcern = "Audit Ready";
+            suggestions.push("Evidence sufficient for archival.");
+        }
+
+        // Add Checklist to suggestions for visibility
+        suggestions = [...suggestions, ...evidence];
 
     } else {
         // Default Procurement Mode

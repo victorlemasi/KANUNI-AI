@@ -6,7 +6,7 @@ import { processProcurementDocument } from "@/app/actions/analyze";
 
 export default function FileUpload() {
     const [file, setFile] = useState<File | null>(null);
-    const [analysisType, setAnalysisType] = useState<'procurement' | 'contract' | 'fraud'>('procurement');
+    const [analysisType, setAnalysisType] = useState<'procurement' | 'contract' | 'fraud' | 'audit'>('procurement');
     const [isUploading, setIsUploading] = useState(false);
     const [result, setResult] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
@@ -137,6 +137,15 @@ AUDIT TRAIL:
                             }`}
                     >
                         Fraud Detection
+                    </button>
+                    <button
+                        onClick={() => setAnalysisType('audit')}
+                        className={`px-4 py-2 text-xs font-bold rounded-lg border transition-all uppercase tracking-wider ${analysisType === 'audit'
+                            ? 'bg-success-600/20 border-success-500 text-success-400'
+                            : 'bg-white/5 border-white/10 text-neutral-500 hover:bg-white/10'
+                            }`}
+                    >
+                        Internal Audit
                     </button>
                 </div>
 
