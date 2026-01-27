@@ -1,9 +1,5 @@
 "use server";
 
-const pdfLib = require("pdf-parse");
-const pdf = pdfLib.default || pdfLib;
-const mammothLib = require("mammoth");
-const mammoth = mammothLib.default || mammothLib;
 import { analyzeText } from "@/lib/analysis";
 import sharp from "sharp";
 
@@ -12,6 +8,13 @@ export async function processProcurementDocument(formData: FormData) {
   if (!file) {
     throw new Error("No file uploaded");
   }
+
+  // Dynamic require to prevent top-level bundling issues in Next.js
+  const pdf = require("pdf-parse");
+  const mammoth = require("mammoth");
+
+  const pdfParser = typeof pdf === 'function' ? pdf : pdf.default || pdf;
+  const wordParser = typeof mammoth === 'function' ? mammoth : mammoth.default || mammoth;
 
   console.log(`Processing file: ${file.name} (${file.size} bytes)`);
 
@@ -22,11 +25,11 @@ export async function processProcurementDocument(formData: FormData) {
   // 1. Extract Text based on file type
   if (file.name.toLowerCase().endsWith(".pdf")) {
     console.log("Extracting text from PDF...");
-    const data = await pdf(buffer);
+    const data = await pdfParser(buffer);
     text = data.text;
   } else if (file.name.toLowerCase().endsWith(".docx")) {
     console.log("Extracting text from Word (.docx)...");
-    const result = await mammoth.extractRawText({ buffer });
+    const result = await wordParser.extractRawText({ buffer });
     text = result.value;
   } else {
     throw new Error("Unsupported file format. Please upload PDF or Word (.docx)");
