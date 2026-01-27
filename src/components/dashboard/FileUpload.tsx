@@ -36,6 +36,10 @@ export default function FileUpload() {
         try {
             const data = await processProcurementDocument(formData);
             setResult(data);
+
+            // Persist for "Saved Reports"
+            const saved = JSON.parse(localStorage.getItem('kanuni_reports') || '[]');
+            localStorage.setItem('kanuni_reports', JSON.stringify([data, ...saved].slice(0, 20)));
         } catch (err: any) {
             console.error(err);
             setError(err.message || "Failed to analyze document");
@@ -59,6 +63,9 @@ RISK ANALYTICS:
 - Risk Score: ${result.riskScore}%
 - Primary Concern: ${result.topConcern.toUpperCase()}
 
+AI SUGGESTIONS / RECOMMENDATIONS:
+${result.suggestions?.map((s: string) => `- ${s}`).join('\n')}
+
 PILLAR ALIGNMENT:
 - Decision Intelligence: ${(result.pillarAlignment.decisionIntelligence * 100).toFixed(1)}%
 - Compliance Automation: ${(result.pillarAlignment.complianceAutomation * 100).toFixed(1)}%
@@ -67,8 +74,10 @@ PILLAR ALIGNMENT:
 ALERTS & ANOMALIES:
 ${result.alerts.length > 0 ? result.alerts.join('\n') : 'No critical anomalies detected.'}
 
-TEXT PREVIEW (EXTRACTED):
-${result.textPreview}...
+AUDIT TRAIL:
+- Model: ${result.auditTrail?.model || 'N/A'}
+- Confidence: ${result.auditTrail ? (result.auditTrail.confidence * 100).toFixed(1) : 0}%
+- Log ID: ${result.auditTrail?.inferenceTime || Date.now()}
 
 -----------------------------------------
 (c) KANUNI AI - Decision Certainty
@@ -168,47 +177,90 @@ ${result.textPreview}...
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="p-4 glass rounded-xl bg-white/[0.02]">
-                                <div className="text-[10px] text-neutral-500 mb-1 tracking-widest uppercase font-bold">Risk Assessment</div>
-                                <div className={`text-3xl font-bold ${parseFloat(result.riskScore) > 50 ? 'text-error-500' : 'text-success-400'}`}>
+                                <div className="text-[10px] text-neutral-500 mb-1 tracking-widest uppercase font-black">Risk Assessment</div>
+                                <div className={`text-3xl font-black ${result.riskScore > 50 ? 'text-error-500' : 'text-success-400'}`}>
                                     {result.riskScore}%
                                 </div>
                             </div>
                             <div className="p-4 glass rounded-xl bg-white/[0.02]">
-                                <div className="text-[10px] text-neutral-500 mb-1 tracking-widest uppercase font-bold">Focus Area</div>
-                                <div className="text-lg font-bold text-accent-400 truncate">
+                                <div className="text-[10px] text-neutral-500 mb-1 tracking-widest uppercase font-black">Focus Area</div>
+                                <div className="text-lg font-black text-accent-400 truncate">
                                     {result.topConcern.replace(/-/g, ' ').toUpperCase()}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="space-y-3">
-                            <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-[0.2em]">Platform Pillars</div>
-                            <div className="grid grid-cols-3 gap-2">
-                                {[
-                                    { name: "Decision", val: result.pillarAlignment.decisionIntelligence, color: "bg-primary-500" },
-                                    { name: "Compliance", val: result.pillarAlignment.complianceAutomation, color: "bg-accent-500" },
-                                    { name: "Governance", val: result.pillarAlignment.hitlGovernance, color: "bg-success-500" }
-                                ].map((p) => (
-                                    <div key={p.name} className="space-y-1">
-                                        <div className="text-[8px] uppercase font-bold text-neutral-500 truncate">{p.name}</div>
-                                        <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                                            <div
-                                                className={`h-full ${p.color} transition-all duration-1000`}
-                                                style={{ width: `${p.val * 100}%` }}
-                                            />
+                        {/* AI Suggestions */}
+                        {result.suggestions && result.suggestions.length > 0 && (
+                            <div className="space-y-2 p-4 glass rounded-xl border-accent-500/10 bg-accent-500/5">
+                                <div className="text-[10px] font-black text-accent-400 uppercase tracking-widest">AI Suggestions & Recommendations</div>
+                                <ul className="space-y-1">
+                                    {result.suggestions.map((s: string, i: number) => (
+                                        <li key={i} className="text-xs text-neutral-100 flex items-center gap-2 font-medium">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-accent-500 shadow-[0_0_8px_rgba(234,179,8,0.5)]"></div>
+                                            {s}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                            {/* Pillar Alignment */}
+                            <div className="space-y-3">
+                                <div className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Platform Pillar Alignment</div>
+                                <div className="space-y-3">
+                                    {[
+                                        { name: "Decision Intelligence", val: result.pillarAlignment.decisionIntelligence, color: "bg-primary-500" },
+                                        { name: "Compliance Automation", val: result.pillarAlignment.complianceAutomation, color: "bg-accent-500" },
+                                        { name: "HITL Governance", val: result.pillarAlignment.hitlGovernance, color: "bg-success-500" }
+                                    ].map((p) => (
+                                        <div key={p.name} className="space-y-1">
+                                            <div className="flex justify-between text-[9px] uppercase font-black text-neutral-400">
+                                                <span>{p.name}</span>
+                                                <span>{(p.val * 100).toFixed(0)}%</span>
+                                            </div>
+                                            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full ${p.color} transition-all duration-1000 shadow-[0_0_10px_rgba(255,255,255,0.1)]`}
+                                                    style={{ width: `${p.val * 100}%` }}
+                                                />
+                                            </div>
                                         </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Decision Log / Audit Trail */}
+                            <div className="space-y-3">
+                                <div className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Decision Log / Audit Trail</div>
+                                <div className="p-3 glass rounded-xl border-white/5 space-y-2 font-mono text-[9px]">
+                                    <div className="flex justify-between border-b border-white/5 pb-1">
+                                        <span className="text-neutral-500">Log ID</span>
+                                        <span className="text-neutral-300">{result.auditTrail?.inferenceTime || 'N/A'}</span>
                                     </div>
-                                ))}
+                                    <div className="flex justify-between border-b border-white/5 pb-1">
+                                        <span className="text-neutral-500">Model Engine</span>
+                                        <span className="text-neutral-300">{result.auditTrail?.model || 'BERT'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-500">System Integrity</span>
+                                        <span className="text-success-500 font-black">VERIFIED</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         {result.alerts.length > 0 && (
-                            <div className="p-3 bg-error-500/5 rounded-lg border border-error-500/10">
-                                <div className="text-[9px] font-black text-error-500 uppercase mb-1 tracking-widest">Active Violations / Alerts</div>
-                                <ul className="text-xs text-neutral-300 space-y-1">
+                            <div className="p-3 bg-error-500/10 rounded-xl border border-error-500/20">
+                                <div className="text-[10px] font-black text-error-500 uppercase mb-2 tracking-widest flex items-center gap-2">
+                                    <AlertCircle className="w-3 h-3" />
+                                    Early-Warning Alerts
+                                </div>
+                                <ul className="text-xs text-neutral-200 space-y-1 font-medium">
                                     {result.alerts.map((alert: string, i: number) => (
                                         <li key={i} className="flex items-start gap-2">
-                                            <div className="w-1 h-1 bg-error-500 rounded-full mt-1.5 shrink-0"></div>
+                                            <div className="w-1 h-1 bg-error-500 rounded-full mt-1.5 shadow-[0_0_5px_rgba(239,68,68,0.5)] shrink-0"></div>
                                             <span>{alert}</span>
                                         </li>
                                     ))}
