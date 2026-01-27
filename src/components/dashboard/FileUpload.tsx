@@ -6,7 +6,7 @@ import { processProcurementDocument } from "@/app/actions/analyze";
 
 export default function FileUpload() {
     const [file, setFile] = useState<File | null>(null);
-    const [analysisType, setAnalysisType] = useState<'procurement' | 'contract'>('procurement');
+    const [analysisType, setAnalysisType] = useState<'procurement' | 'contract' | 'fraud'>('procurement');
     const [isUploading, setIsUploading] = useState(false);
     const [result, setResult] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
@@ -114,8 +114,8 @@ AUDIT TRAIL:
                     <button
                         onClick={() => setAnalysisType('procurement')}
                         className={`px-4 py-2 text-xs font-bold rounded-lg border transition-all uppercase tracking-wider ${analysisType === 'procurement'
-                                ? 'bg-primary-600/20 border-primary-500 text-primary-400'
-                                : 'bg-white/5 border-white/10 text-neutral-500 hover:bg-white/10'
+                            ? 'bg-primary-600/20 border-primary-500 text-primary-400'
+                            : 'bg-white/5 border-white/10 text-neutral-500 hover:bg-white/10'
                             }`}
                     >
                         Standard Procurement
@@ -123,11 +123,20 @@ AUDIT TRAIL:
                     <button
                         onClick={() => setAnalysisType('contract')}
                         className={`px-4 py-2 text-xs font-bold rounded-lg border transition-all uppercase tracking-wider ${analysisType === 'contract'
-                                ? 'bg-accent-600/20 border-accent-500 text-accent-400'
-                                : 'bg-white/5 border-white/10 text-neutral-500 hover:bg-white/10'
+                            ? 'bg-accent-600/20 border-accent-500 text-accent-400'
+                            : 'bg-white/5 border-white/10 text-neutral-500 hover:bg-white/10'
                             }`}
                     >
                         Contract Review
+                    </button>
+                    <button
+                        onClick={() => setAnalysisType('fraud')}
+                        className={`px-4 py-2 text-xs font-bold rounded-lg border transition-all uppercase tracking-wider ${analysisType === 'fraud'
+                            ? 'bg-error-600/20 border-error-500 text-error-400'
+                            : 'bg-white/5 border-white/10 text-neutral-500 hover:bg-white/10'
+                            }`}
+                    >
+                        Fraud Detection
                     </button>
                 </div>
 
@@ -154,9 +163,9 @@ AUDIT TRAIL:
                 {file && !isUploading && !result && (
                     <button
                         onClick={handleUpload}
-                        className="block w-full py-3 bg-primary-600 hover:bg-primary-500 rounded-xl font-bold transition-all shadow-lg shadow-primary-600/20"
+                        className="block w-full py-3 bg-primary-600 hover:bg-primary-500 rounded-xl font-bold transition-all shadow-lg shadow-primary-600/20 uppercase"
                     >
-                        START {analysisType === 'contract' ? 'CONTRACT REVIEW' : 'ADVANCED ANALYSIS'}
+                        START {analysisType.replace(/-/g, ' ')} ANALYSIS
                     </button>
                 )}
 

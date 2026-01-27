@@ -12,7 +12,7 @@ export async function getClassifier() {
     return classifier;
 }
 
-export async function analyzeText(text: string, type: 'procurement' | 'contract' = 'procurement') {
+export async function analyzeText(text: string, type: 'procurement' | 'contract' | 'fraud' = 'procurement') {
     const classifier = await getClassifier();
 
     let labels: string[] = [];
@@ -56,6 +56,37 @@ export async function analyzeText(text: string, type: 'procurement' | 'contract'
             topConcern = "CRITICAL: Unlimited Liability detected";
             suggestions.unshift("IMMEDIATE: Renegotiate liability cap.");
         }
+
+    } else if (type === 'fraud') {
+        // Fraud Mode: Financial Anomalies
+        riskScore = 10; // Baseline
+        topConcern = "Standard financial patterns";
+
+        // 1. Detect Round Amounts (Benford's Law red flag)
+        const roundAmountRegex = /\b\d{1,3}(,\d{3})*(\.00)?\b/g;
+        const matches = text.match(roundAmountRegex) || [];
+        const cleanMatches = matches.filter(m => {
+            const num = parseInt(m.replace(/,/g, ''));
+            return num > 1000 && num % 1000 === 0; // Huge round numbers
+        });
+
+        if (cleanMatches.length > 0) {
+            riskScore += 40;
+            topConcern = "Suspicious round-dollar amounts detected";
+            suggestions.push(`Verify evidence for round amounts: ${cleanMatches.slice(0, 3).join(', ')}`);
+        }
+
+        // 2. High-Risk Keywords for Fraud/Bribery
+        const fraudKeywords = ["facilitation", "expedite", "cash", "bearer", "gift", "consulting fee", "urgent", "private"];
+        const foundKeywords = fraudKeywords.filter(k => text.toLowerCase().includes(k));
+
+        if (foundKeywords.length > 0) {
+            riskScore += (foundKeywords.length * 15);
+            topConcern = `Fraud risk indicators found: ${foundKeywords[0]}`;
+            suggestions.push(`Investigate usage of terms: ${foundKeywords.join(', ')}`);
+        }
+
+        riskScore = Math.min(riskScore, 99); // Cap at 99
 
     } else {
         // Default Procurement Mode
