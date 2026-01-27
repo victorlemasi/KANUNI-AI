@@ -1,7 +1,9 @@
 "use server";
 
-const pdf = require("pdf-parse");
-const mammoth = require("mammoth");
+const pdfLib = require("pdf-parse");
+const pdf = pdfLib.default || pdfLib;
+const mammothLib = require("mammoth");
+const mammoth = mammothLib.default || mammothLib;
 import { analyzeText } from "@/lib/analysis";
 import sharp from "sharp";
 
