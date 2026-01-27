@@ -106,10 +106,19 @@ AUDIT TRAIL:
                 </div>
 
                 {filteredReports.length === 0 ? (
-                    <div className="text-center py-20 glass rounded-3xl border-dashed border-white/10">
-                        <FileText className="w-16 h-16 text-neutral-700 mx-auto mb-4" />
-                        <h3 className="text-xl font-bold text-neutral-500">No Reports Found</h3>
-                        <p className="text-neutral-600 text-sm mt-2">Processed documents will appear here automatically.</p>
+                    <div className="flex flex-col items-center justify-center py-32 glass rounded-3xl border-dashed border-2 border-white/5 space-y-6">
+                        <div className="p-6 bg-white/[0.02] rounded-full ring-1 ring-white/10">
+                            <FileText className="w-12 h-12 text-neutral-600" />
+                        </div>
+                        <div className="text-center space-y-2">
+                            <h3 className="text-xl font-bold text-neutral-200">No Reports Archived</h3>
+                            <p className="text-neutral-500 text-sm max-w-xs mx-auto">
+                                Your institutional analysis history will appear here once you process documents.
+                            </p>
+                        </div>
+                        <Link href="/" className="px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-xs font-bold uppercase tracking-widest transition-all">
+                            Start New Analysis
+                        </Link>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -16,7 +16,7 @@ export async function processProcurementDocument(formData: FormData) {
   const pdfParser = typeof pdf === 'function' ? pdf : pdf.default || pdf;
   const wordParser = typeof mammoth === 'function' ? mammoth : mammoth.default || mammoth;
 
-  console.log(`Processing file: ${file.name} (${file.size} bytes)`);
+
 
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);

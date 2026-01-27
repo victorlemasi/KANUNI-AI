@@ -110,43 +110,24 @@ AUDIT TRAIL:
                 </div>
 
                 {/* Analysis Mode Toggle */}
-                <div className="flex justify-center gap-4 py-2">
-                    <button
-                        onClick={() => setAnalysisType('procurement')}
-                        className={`px-4 py-2 text-xs font-bold rounded-lg border transition-all uppercase tracking-wider ${analysisType === 'procurement'
-                            ? 'bg-primary-600/20 border-primary-500 text-primary-400'
-                            : 'bg-white/5 border-white/10 text-neutral-500 hover:bg-white/10'
-                            }`}
-                    >
-                        Standard Procurement
-                    </button>
-                    <button
-                        onClick={() => setAnalysisType('contract')}
-                        className={`px-4 py-2 text-xs font-bold rounded-lg border transition-all uppercase tracking-wider ${analysisType === 'contract'
-                            ? 'bg-accent-600/20 border-accent-500 text-accent-400'
-                            : 'bg-white/5 border-white/10 text-neutral-500 hover:bg-white/10'
-                            }`}
-                    >
-                        Contract Review
-                    </button>
-                    <button
-                        onClick={() => setAnalysisType('fraud')}
-                        className={`px-4 py-2 text-xs font-bold rounded-lg border transition-all uppercase tracking-wider ${analysisType === 'fraud'
-                            ? 'bg-error-600/20 border-error-500 text-error-400'
-                            : 'bg-white/5 border-white/10 text-neutral-500 hover:bg-white/10'
-                            }`}
-                    >
-                        Fraud Detection
-                    </button>
-                    <button
-                        onClick={() => setAnalysisType('audit')}
-                        className={`px-4 py-2 text-xs font-bold rounded-lg border transition-all uppercase tracking-wider ${analysisType === 'audit'
-                            ? 'bg-success-600/20 border-success-500 text-success-400'
-                            : 'bg-white/5 border-white/10 text-neutral-500 hover:bg-white/10'
-                            }`}
-                    >
-                        Internal Audit
-                    </button>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 py-2 bg-white/5 p-1 rounded-xl">
+                    {[
+                        { id: 'procurement', label: 'Procurement', color: 'primary' },
+                        { id: 'contract', label: 'Contract', color: 'accent' },
+                        { id: 'fraud', label: 'Fraud', color: 'error' },
+                        { id: 'audit', label: 'Audit', color: 'success' }
+                    ].map((mode) => (
+                        <button
+                            key={mode.id}
+                            onClick={() => setAnalysisType(mode.id as any)}
+                            className={`px-3 py-2 text-[10px] md:text-xs font-bold rounded-lg transition-all uppercase tracking-wider ${analysisType === mode.id
+                                ? `bg-${mode.color}-500 text-white shadow-lg shadow-${mode.color}-500/30 scale-105`
+                                : 'text-neutral-400 hover:bg-white/5 hover:text-white'
+                                }`}
+                        >
+                            {mode.label}
+                        </button>
+                    ))}
                 </div>
 
                 <input
@@ -172,21 +153,34 @@ AUDIT TRAIL:
                 {file && !isUploading && !result && (
                     <button
                         onClick={handleUpload}
-                        className="block w-full py-3 bg-primary-600 hover:bg-primary-500 rounded-xl font-bold transition-all shadow-lg shadow-primary-600/20 uppercase"
+                        className={`block w-full py-4 rounded-xl font-black text-sm transition-all shadow-xl uppercase tracking-widest relative overflow-hidden group ${analysisType === 'procurement' ? 'bg-gradient-to-r from-primary-600 to-primary-500 shadow-primary-600/20' :
+                            analysisType === 'contract' ? 'bg-gradient-to-r from-accent-600 to-accent-500 shadow-accent-600/20' :
+                                analysisType === 'fraud' ? 'bg-gradient-to-r from-error-600 to-error-500 shadow-error-600/20' :
+                                    'bg-gradient-to-r from-success-600 to-success-500 shadow-success-600/20'
+                            } hover:scale-[1.02] active:scale-[0.98]`}
                     >
-                        START {analysisType.replace(/-/g, ' ')} ANALYSIS
+                        <span className="relative z-10 flex items-center justify-center gap-2">
+                            <FileCode className="w-5 h-5" />
+                            RUN {analysisType} PROTOCOLS
+                        </span>
+                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
                     </button>
                 )}
 
                 {isUploading && (
-                    <div className="flex flex-col items-center justify-center space-y-3 py-4">
-                        <Loader2 className="w-10 h-10 animate-spin text-accent-500" />
-                        <div className="text-sm font-bold text-neutral-300 animate-pulse">
-                            EXTRACTING & CLASSIFYING...
+                    <div className="flex flex-col items-center justify-center space-y-4 py-8 animate-in fade-in duration-500">
+                        <div className="relative">
+                            <div className={`absolute inset-0 bg-${analysisType === 'procurement' ? 'primary' : analysisType === 'contract' ? 'accent' : analysisType === 'fraud' ? 'error' : 'success'}-500/20 blur-xl rounded-full animate-pulse`}></div>
+                            <Loader2 className={`w-12 h-12 animate-spin text-${analysisType === 'procurement' ? 'primary' : analysisType === 'contract' ? 'accent' : analysisType === 'fraud' ? 'error' : 'success'}-500 relative z-10`} />
                         </div>
-                        <p className="text-[10px] text-neutral-500 uppercase tracking-widest text-center max-w-xs">
-                            BERT model is running inference on {analysisType === 'contract' ? 'legal clauses' : 'institutional data'}
-                        </p>
+                        <div className="space-y-1">
+                            <div className="text-sm font-black text-white tracking-widest uppercase animate-pulse">
+                                RUNNING {analysisType} DIAGNOSTICS...
+                            </div>
+                            <p className="text-[10px] text-neutral-400 font-medium tracking-wide">
+                                Analyzing patterns against governance frameworks
+                            </p>
+                        </div>
                     </div>
                 )}
             </div>
