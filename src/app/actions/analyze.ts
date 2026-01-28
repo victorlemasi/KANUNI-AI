@@ -131,7 +131,7 @@ export async function processProcurementDocument(formData: FormData) {
     let imageMetadata = null;
 
     // 1. Extract Content
-    const DEPLOY_ID = "2026-01-28_J"; // Advanced Anomaly Detection + Statistical Intelligence
+    const DEPLOY_ID = "2026-01-28_K"; // Word Parser Hotfix
     console.log(`[SERVER] [${DEPLOY_ID}] Processing ${file.name}...`);
 
     const fileNameLower = file.name.toLowerCase();
@@ -161,7 +161,7 @@ export async function processProcurementDocument(formData: FormData) {
       }
     } else if (fileNameLower.endsWith(".docx")) {
       if (!wordParser) return { success: false, error: "Word parser resolution failed." };
-      const result = await wordParser.extractRawText({ buffer });
+      const result = await wordParser({ buffer });
       text = result.value;
     } else if (fileNameLower.match(/\.(png|jpg|jpeg|webp)$/)) {
       // --- IMAGE ANALYSIS ---
