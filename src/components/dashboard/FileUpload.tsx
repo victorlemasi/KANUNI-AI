@@ -50,6 +50,8 @@ export default function FileUpload() {
 
             if (errorMessage.includes("AI model")) {
                 errorMessage = "AI model failed to load. This may be due to server memory constraints. Please try again or contact support.";
+            } else if (errorMessage === "Failed to fetch" || errorMessage.includes("fetch")) {
+                errorMessage = "The server is taking too long to respond or has crashed. This usually happens with large documents on Render's free tier. Please try a smaller file.";
             } else if (errorMessage.includes("No readable text")) {
                 errorMessage = "Could not extract text from the document. Please ensure it's not a scanned image or empty file.";
             } else if (errorMessage.includes("Unsupported file format")) {
