@@ -11,6 +11,10 @@ services:
         value: 1
       - key: NODE_OPTIONS
         value: --max-old-space-size=2048
+      - key: TRANSFORMERS_CACHE
+        value: /opt/render/project/src/.cache
+      - key: XENOVA_ENV
+        value: production
     autoDeploy: true
     regions: Oregon
     plan: free

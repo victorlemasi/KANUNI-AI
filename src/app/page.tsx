@@ -1,3 +1,5 @@
+"use client";
+
 import FileUpload from "@/components/dashboard/FileUpload";
 import { BrainCircuit } from "lucide-react";
 

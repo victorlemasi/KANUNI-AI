@@ -1,5 +1,4 @@
-import { pipeline } from "@xenova/transformers";
-
+// We use dynamic imports to prevent Transformers.js from initializing during SSR/Build
 let classifier: any = null;
 let isLoading = false;
 let loadError: Error | null = null;
@@ -22,6 +21,15 @@ export async function getClassifier() {
 
     try {
         isLoading = true;
+        console.log("Initializing Transformers.js environment...");
+
+        // Dynamically import to avoid top-level side effects
+        const { pipeline, env } = await import("@xenova/transformers");
+
+        // Configure environment for server-side/constrained environments
+        env.allowLocalModels = false;
+        env.useBrowserCache = false;
+
         console.log("Loading BERT model (Xenova/mobilebert-uncased-mnli)...");
 
         // Using a lightweight BERT model for zero-shot classification
@@ -32,7 +40,7 @@ export async function getClassifier() {
     } catch (error: any) {
         loadError = error;
         console.error("Failed to load AI model:", error);
-        throw new Error(`AI model initialization failed. This may be due to memory constraints. Error: ${error.message}`);
+        throw new Error(`AI model initialization failed. This may be due to memory constraints or environment issues. Error: ${error.message}`);
     } finally {
         isLoading = false;
     }
