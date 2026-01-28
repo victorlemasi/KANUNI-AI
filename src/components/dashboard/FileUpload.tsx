@@ -36,7 +36,14 @@ export default function FileUpload() {
         formData.append("analysisType", analysisType);
 
         try {
-            const data = await processProcurementDocument(formData);
+            const result = await processProcurementDocument(formData);
+
+            if (!result.success) {
+                setError(result.error || "Server processing failed");
+                return;
+            }
+
+            const data = result.data;
             setResult(data);
 
             // Persist for "Saved Reports"

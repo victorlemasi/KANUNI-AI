@@ -50,6 +50,10 @@ export async function getClassifier() {
 export async function analyzeText(text: string, type: 'procurement' | 'contract' | 'fraud' | 'audit' = 'procurement') {
     const classifier = await getClassifier();
 
+    if (!classifier) {
+        throw new Error("AI classifier initialization failed (returned null)");
+    }
+
     let labels: string[] = [];
     let suggestions: string[] = [];
     let riskScore = 0;
@@ -57,7 +61,7 @@ export async function analyzeText(text: string, type: 'procurement' | 'contract'
     // Memory safety: Chunk the text if it's too long
     // BERT usually handles ~512 tokens, so we analyze the first 1000 chars for type classification
     // but we can chunk the rest for a more comprehensive risk score if needed.
-    const truncatedText = text.substring(0, 1000);
+    const truncatedText = text.substring(0, 1500); // Slightly larger window for classification context
 
     if (type === 'contract') {
         // ... (rest of the contract logic stays same but uses truncatedText)
