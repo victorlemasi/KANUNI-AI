@@ -42,11 +42,17 @@ export async function processProcurementDocument(formData: FormData) {
      * Handles Promises, LoadingTasks, DocumentProxies, and standard result objects.
      */
     const resolveAndExtractText = async (data: any, depth = 0): Promise<string> => {
-      if (!data || depth > 3) return "";
+      if (!data || depth > 5) return "";
 
-      // 1. Handle Promises/LoadingTasks
-      if (typeof data.then === 'function') return resolveAndExtractText(await data, depth + 1);
-      if (data.promise && typeof data.promise.then === 'function') return resolveAndExtractText(await data.promise, depth + 1);
+      // 1. Handle Promises/LoadingTasks/Proxies aggressively
+      try {
+        if (typeof data.then === 'function') return resolveAndExtractText(await data, depth + 1);
+        if (data.promise && typeof data.promise.then === 'function') return resolveAndExtractText(await data.promise, depth + 1);
+        if (data.doc && typeof data.doc.then === 'function') return resolveAndExtractText(await data.doc, depth + 1);
+        if (data.doc?.promise && typeof data.doc.promise.then === 'function') return resolveAndExtractText(await data.doc.promise, depth + 1);
+      } catch (e) {
+        console.warn(`[SERVER] Resolution failure at depth ${depth}`, e);
+      }
 
       // 2. Direct string match
       if (typeof data === 'string' && data.length > 50) return data;
@@ -132,7 +138,7 @@ export async function processProcurementDocument(formData: FormData) {
     let imageMetadata = null;
 
     // 1. Extract Content
-    const DEPLOY_ID = "2026-01-28_E"; // Unified Recursive Extractor
+    const DEPLOY_ID = "2026-01-28_F"; // Deep Diagnostic + doc.promise support
     console.log(`[SERVER] [${DEPLOY_ID}] Starting content extraction from ${file.name}...`);
 
     const fileNameLower = file.name.toLowerCase();
@@ -141,17 +147,26 @@ export async function processProcurementDocument(formData: FormData) {
       try {
         const rawResult = await parsePDF(pdfParser, buffer);
 
-        // Diagnostic: What did we actually get back?
-        const dataKeys = Object.keys(rawResult || {});
-        console.log(`[SERVER] PDF Parse Raw Result Keys: [${dataKeys.join(', ')}]`);
-
         // Run unified extraction engine
         text = await resolveAndExtractText(rawResult);
 
         if (!text || text.trim().length === 0) {
+          // --- DEEP DIAGNOSTIC (Level 2) ---
+          const info: any = {};
+          try {
+            for (const k of Object.keys(rawResult || {})) {
+              const val = rawResult[k];
+              info[k] = {
+                type: typeof val,
+                keys: (val && typeof val === 'object') ? Object.keys(val).slice(0, 10) : []
+              };
+              if (val?.doc) info[k].docKeys = Object.keys(val.doc).slice(0, 10);
+            }
+          } catch (e) { }
+
           return {
             success: false,
-            error: `Could not extract text from PDF. (Ver: ${DEPLOY_ID}, Structure: [${dataKeys.join(', ')}])`
+            error: `Could not extract text from PDF. (Ver: ${DEPLOY_ID}, Structure: ${JSON.stringify(info)})`
           };
         }
 
