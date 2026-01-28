@@ -43,8 +43,20 @@ export default function FileUpload() {
             const saved = JSON.parse(localStorage.getItem('kanuni_reports') || '[]');
             localStorage.setItem('kanuni_reports', JSON.stringify([data, ...saved].slice(0, 20)));
         } catch (err: any) {
-            console.error(err);
-            setError(err.message || "Failed to analyze document");
+            console.error("Analysis error:", err);
+
+            // Provide more specific error messages
+            let errorMessage = err.message || "Failed to analyze document";
+
+            if (errorMessage.includes("AI model")) {
+                errorMessage = "AI model failed to load. This may be due to server memory constraints. Please try again or contact support.";
+            } else if (errorMessage.includes("No readable text")) {
+                errorMessage = "Could not extract text from the document. Please ensure it's not a scanned image or empty file.";
+            } else if (errorMessage.includes("Unsupported file format")) {
+                errorMessage = "Please upload a PDF or Word (.docx) file only.";
+            }
+
+            setError(errorMessage);
         } finally {
             setIsUploading(false);
         }
@@ -213,9 +225,21 @@ AUDIT TRAIL:
             </div>
 
             {error && (
-                <div className="p-4 bg-error-500/10 border border-error-500/20 rounded-xl flex items-center space-x-3 text-error-500 animate-in shake duration-300">
-                    <AlertCircle className="w-5 h-5" />
-                    <span className="text-sm font-semibold">{error}</span>
+                <div className="p-4 bg-error-500/10 border border-error-500/20 rounded-xl space-y-3 animate-in shake duration-300">
+                    <div className="flex items-start space-x-3 text-error-500">
+                        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                            <span className="text-sm font-semibold block">{error}</span>
+                        </div>
+                    </div>
+                    {file && (
+                        <button
+                            onClick={handleUpload}
+                            className="w-full py-2 bg-error-500/20 hover:bg-error-500/30 border border-error-500/30 text-error-400 rounded-lg text-xs font-bold transition-colors"
+                        >
+                            Try Again
+                        </button>
+                    )}
                 </div>
             )}
 

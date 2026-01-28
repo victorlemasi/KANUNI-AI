@@ -1,15 +1,41 @@
 import { pipeline } from "@xenova/transformers";
 
 let classifier: any = null;
+let isLoading = false;
+let loadError: Error | null = null;
 
 export async function getClassifier() {
-    if (!classifier) {
+    // Return cached classifier if available
+    if (classifier) return classifier;
+
+    // If there was a previous load error, throw it
+    if (loadError) {
+        throw new Error(`AI model failed to load: ${loadError.message}. Please try again later.`);
+    }
+
+    // Prevent multiple simultaneous loads
+    if (isLoading) {
+        // Wait for the current load to complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return getClassifier();
+    }
+
+    try {
+        isLoading = true;
         console.log("Loading BERT model (Xenova/mobilebert-uncased-mnli)...");
+
         // Using a lightweight BERT model for zero-shot classification
         classifier = await pipeline("zero-shot-classification", "Xenova/mobilebert-uncased-mnli");
+
         console.log("BERT model loaded successfully.");
+        return classifier;
+    } catch (error: any) {
+        loadError = error;
+        console.error("Failed to load AI model:", error);
+        throw new Error(`AI model initialization failed. This may be due to memory constraints. Error: ${error.message}`);
+    } finally {
+        isLoading = false;
     }
-    return classifier;
 }
 
 export async function analyzeText(text: string, type: 'procurement' | 'contract' | 'fraud' | 'audit' = 'procurement') {
