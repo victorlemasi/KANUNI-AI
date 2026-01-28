@@ -38,58 +38,79 @@ export async function processProcurementDocument(formData: FormData) {
     };
 
     /**
-     * Fallback for when the parser returns a PDFDocumentProxy (common on Render)
+     * Aggressive recursive content extractor for PDF data structures.
+     * Handles Promises, LoadingTasks, DocumentProxies, and standard result objects.
      */
-    const extractFromDocProxy = async (doc: any): Promise<string> => {
-      if (!doc) return "";
+    const resolveAndExtractText = async (data: any, depth = 0): Promise<string> => {
+      if (!data || depth > 3) return "";
 
-      // Attempt to find page count in various standard locations
-      const numPages = doc.numPages || doc._pdfInfo?.numPages || 0;
+      // 1. Handle Promises/LoadingTasks
+      if (typeof data.then === 'function') return resolveAndExtractText(await data, depth + 1);
+      if (data.promise && typeof data.promise.then === 'function') return resolveAndExtractText(await data.promise, depth + 1);
 
-      console.log(`[SERVER] Extracting from Document Proxy. Pages detected: ${numPages}. Keys: [${Object.keys(doc).join(', ')}]`);
+      // 2. Direct string match
+      if (typeof data === 'string' && data.length > 50) return data;
 
-      if (numPages === 0) return "";
+      // 3. Standard text property
+      if (data.text && typeof data.text === 'string' && data.text.length > 50) return data.text;
 
-      let fullText = "";
-      for (let i = 1; i <= numPages; i++) {
-        try {
-          const page = await doc.getPage(i);
-          const content = await page.getTextContent();
-          if (content && content.items) {
-            const pageText = content.items.map((item: any) => item.str || "").join(" ");
-            fullText += pageText + "\n";
+      // 4. Check for nested Document/Proxy
+      if (data.doc && data.doc !== data) {
+        const found = await resolveAndExtractText(data.doc, depth + 1);
+        if (found) return found;
+      }
+
+      // 5. Manual Page-by-Page Extraction (PDFDocumentProxy)
+      const numPages = data.numPages || data._pdfInfo?.numPages || 0;
+      if (numPages > 0 && typeof data.getPage === 'function') {
+        console.log(`[SERVER] Detected PDF Proxy (${numPages} pages). Extracting manually...`);
+        let fullText = "";
+        for (let i = 1; i <= numPages; i++) {
+          try {
+            const page = await data.getPage(i);
+            const content = await page.getTextContent();
+            if (content?.items) {
+              const pageText = content.items.map((item: any) => item.str || "").join(" ");
+              fullText += pageText + "\n";
+            }
+          } catch (e) {
+            console.warn(`[SERVER] Page ${i} extraction failed`, e);
           }
-        } catch (pageErr) {
-          console.warn(`[SERVER] Failed to extract from page ${i}`, pageErr);
+        }
+        if (fullText.trim().length > 0) return fullText;
+      }
+
+      // 6. Deep Search Fallback (Look for any string > 100 chars in children)
+      for (const key in data) {
+        if (typeof data[key] === 'object' && data[key] !== null && key !== 'doc' && key !== 'options') {
+          const found = await resolveAndExtractText(data[key], depth + 1);
+          if (found) return found;
+        } else if (typeof data[key] === 'string' && data[key].length > 100) {
+          return data[key];
         }
       }
-      return fullText;
+
+      return "";
     };
 
     const parsePDF = async (parser: any, dataBuffer: Buffer) => {
       try {
         console.log("[SERVER] Calling PDF parser...");
-        let result = await parser(dataBuffer);
+        // Handle both class/function and potential .pdf/.parse methods
+        const callParser = typeof parser.parse === 'function' ? parser.parse :
+          (typeof parser.pdf === 'function' ? parser.pdf : parser);
 
-        // Handle PDFLoadingTask pattern (common in some pdf-parse forks)
-        if (result && result.promise && typeof result.promise.then === 'function') {
-          console.log("[SERVER] PDFLoadingTask detected, awaiting promise...");
-          result = await result.promise;
-        }
-
-        return result;
-      } catch (err: any) {
-        // Fallback for class constructors
-        if (err.message && (err.message.includes("Class constructor") || err.message.includes("cannot be invoked without 'new'"))) {
-          console.log("[SERVER] PDF Parser detected as class, instantiating with 'new'...");
-          let result = await new parser(dataBuffer);
-
-          if (result && result.promise && typeof result.promise.then === 'function') {
-            console.log("[SERVER] PDFLoadingTask (from class) detected, awaiting promise...");
-            result = await result.promise;
+        try {
+          return await callParser(dataBuffer);
+        } catch (err: any) {
+          if (err.message?.includes("Class constructor") || err.message?.includes("without 'new'")) {
+            console.log("[SERVER] Instantiating parser with 'new'...");
+            return new parser(dataBuffer);
           }
-          return result;
+          throw err;
         }
+      } catch (err: any) {
+        console.error("[SERVER] PDF Invocation Error:", err);
         throw err;
       }
     };
@@ -111,51 +132,26 @@ export async function processProcurementDocument(formData: FormData) {
     let imageMetadata = null;
 
     // 1. Extract Content
-    const DEPLOY_ID = "2026-01-28_D"; // Robust Proxy Extraction
+    const DEPLOY_ID = "2026-01-28_E"; // Unified Recursive Extractor
     console.log(`[SERVER] [${DEPLOY_ID}] Starting content extraction from ${file.name}...`);
 
     const fileNameLower = file.name.toLowerCase();
 
     if (fileNameLower.endsWith(".pdf")) {
       try {
-        const data = await parsePDF(pdfParser, buffer);
+        const rawResult = await parsePDF(pdfParser, buffer);
 
         // Diagnostic: What did we actually get back?
-        const dataKeys = Object.keys(data || {});
-        console.log(`[SERVER] PDF Parse Result Keys: [${dataKeys.join(', ')}]`);
+        const dataKeys = Object.keys(rawResult || {});
+        console.log(`[SERVER] PDF Parse Raw Result Keys: [${dataKeys.join(', ')}]`);
 
-        // --- TEXT EXTRACTION STRATEGY ---
-
-        // 1. Check for PDFDocumentProxy handle (common on Render bundle variants)
-        if (data && (data.doc || data.numPages || data._pdfInfo)) {
-          console.log("[SERVER] Document Proxy detected. Using manual extraction fallback.");
-          text = await extractFromDocProxy(data.doc || data);
-        }
-        // 2. Standard location
-        else if (data && typeof data.text === 'string') {
-          text = data.text;
-        }
-        // 3. Fallback search
-        else if (data) {
-          const findText = (obj: any, depth = 0): string => {
-            if (!obj || depth > 5) return "";
-            if (typeof obj === 'string' && obj.length > 50) return obj;
-            if (typeof obj === 'object') {
-              for (const key in obj) {
-                const found = findText(obj[key], depth + 1);
-                if (found) return found;
-              }
-            }
-            return "";
-          };
-          text = findText(data);
-        }
+        // Run unified extraction engine
+        text = await resolveAndExtractText(rawResult);
 
         if (!text || text.trim().length === 0) {
-          const keys = Object.keys(data || {});
           return {
             success: false,
-            error: `Could not extract text from PDF. (Ver: ${DEPLOY_ID}, Keys: [${keys.join(', ')}])`
+            error: `Could not extract text from PDF. (Ver: ${DEPLOY_ID}, Structure: [${dataKeys.join(', ')}])`
           };
         }
 
