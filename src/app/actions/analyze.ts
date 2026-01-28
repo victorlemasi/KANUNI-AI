@@ -19,6 +19,7 @@ export async function processProcurementDocument(formData: FormData) {
       if (!mod) return null;
       if (typeof mod === 'function') return mod;
       if (mod.default && typeof mod.default === 'function') return mod.default;
+      if (typeof mod.PDFParse === 'function') return mod.PDFParse; // Specific to the version/fork on Render
       if (funcName && typeof mod[funcName] === 'function') return mod[funcName];
       if (funcName && mod.default && typeof mod.default[funcName] === 'function') return mod.default[funcName];
       return null;
@@ -30,16 +31,9 @@ export async function processProcurementDocument(formData: FormData) {
     const pdfParser = getParser(pdfModule);
     const wordParser = getParser(mammothModule, 'extractRawText');
 
-    const pdfKeys = Object.keys(pdfModule || {});
-    const mammothKeys = Object.keys(mammothModule || {});
-
-    console.log(`[SERVER] Debug: pdf-parse keys: ${pdfKeys}`);
-    console.log(`[SERVER] Debug: mammoth keys: ${mammothKeys}`);
-
     if (!pdfParser && file.name.toLowerCase().endsWith(".pdf")) {
-      const structureInfo = `Type: ${typeof pdfModule}, Keys: [${pdfKeys.join(', ')}]`;
-      console.error("[SERVER] PDF Parser Resolution Failed. Structure:", structureInfo);
-      return { success: false, error: `PDF initialization error: Parser function not resolved. (${structureInfo})` };
+      console.error("[SERVER] PDF Parser Resolution Failed");
+      return { success: false, error: "PDF initialization error: Analysis engine could not be initialized." };
     }
 
     const bytes = await file.arrayBuffer();
