@@ -67,7 +67,9 @@ export async function processProcurementDocument(formData: FormData) {
     let text = "";
 
     // 1. Extract Text
-    console.log(`[SERVER] Milestone: Extracting text from ${file.name}...`);
+    const DEPLOY_ID = "2026-01-28_B"; // For verifying the active version
+    console.log(`[SERVER] [${DEPLOY_ID}] Milestone: Extracting text from ${file.name}...`);
+
     if (file.name.toLowerCase().endsWith(".pdf")) {
       try {
         const data = await parsePDF(pdfParser, buffer);
@@ -76,32 +78,52 @@ export async function processProcurementDocument(formData: FormData) {
         const dataKeys = Object.keys(data || {});
         console.log(`[SERVER] PDF Parse Result Keys: [${dataKeys.join(', ')}]`);
 
-        // 1. Standard pdf-parse
-        if (data && typeof data.text === 'string') {
-          text = data.text;
+        // --- TEXT SEARCH STRATEGY ---
+
+        // 1. Standard locations
+        if (data) {
+          if (typeof data.text === 'string') text = data.text;
+          else if (typeof data === 'string') text = data;
+          else if (data.content && typeof data.content === 'string') text = data.content;
+          else if (data.value && typeof data.value === 'string') text = data.value;
         }
-        // 2. Fallback for other variants/forks
-        else if (data && typeof data === 'string') {
-          text = data;
-        }
-        else if (data && data.content && typeof data.content === 'string') {
-          text = data.content;
-        }
-        else if (data && data.value && typeof data.value === 'string') {
-          text = data.value;
+
+        // 2. Recursive Search (For modern/unknown structures)
+        if (!text || text.trim().length === 0) {
+          console.log("[SERVER] Standard text properties empty. Starting recursive search...");
+
+          const findText = (obj: any, depth = 0): string => {
+            if (!obj || depth > 5) return "";
+            if (typeof obj === 'string' && obj.length > 50) return obj;
+
+            if (typeof obj === 'object') {
+              for (const key in obj) {
+                const found = findText(obj[key], depth + 1);
+                if (found) return found;
+              }
+            }
+            return "";
+          };
+
+          text = findText(data);
         }
 
         if (!text || text.trim().length === 0) {
-          console.warn("[SERVER] PDF parsed but resulting text is empty. Data structure:", JSON.stringify(dataKeys));
+          const typeInfo = data ? typeof data : 'null/undefined';
+          const keysStr = dataKeys.join(', ');
+          console.warn(`[SERVER] PDF parsed but resulting text is empty. Type: ${typeInfo}, Keys: [${keysStr}]`);
+
           return {
             success: false,
-            error: `PDF parsed but no text was extracted. (Result structure: [${dataKeys.join(', ')}])`
+            error: `PDF parsed but no text was extracted. (Ver: ${DEPLOY_ID}, Type: ${typeInfo}, Keys: [${keysStr}])`
           };
         }
 
+        console.log(`[SERVER] PDF parsing success. Extracted ${text.length} characters.`);
+
       } catch (pdfErr: any) {
         console.error("[SERVER] PDF Parse Error:", pdfErr);
-        return { success: false, error: `Failed to parse PDF: ${pdfErr.message}` };
+        return { success: false, error: `Failed to parse PDF: ${pdfErr.message} (Ver: ${DEPLOY_ID})` };
       }
     } else if (file.name.toLowerCase().endsWith(".docx")) {
       if (!wordParser || typeof wordParser.extractRawText !== 'function') {
