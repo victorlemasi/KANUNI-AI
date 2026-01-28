@@ -131,7 +131,7 @@ export async function processProcurementDocument(formData: FormData) {
     let imageMetadata = null;
 
     // 1. Extract Content
-    const DEPLOY_ID = "2026-01-28_H"; // Invasive Diagnostic + LoadingTask Bypass
+    const DEPLOY_ID = "2026-01-28_I"; // High Intelligence + PPDA + Risk Levels
     console.log(`[SERVER] [${DEPLOY_ID}] Processing ${file.name}...`);
 
     const fileNameLower = file.name.toLowerCase();
@@ -200,7 +200,7 @@ export async function processProcurementDocument(formData: FormData) {
       timestamp: new Date().toISOString(),
       textPreview: text.substring(0, 500),
       imageMetadata,
-      reportSummary: `KANUNI AI ${imageMetadata ? 'Image' : 'Document'} Report for ${file.name}. Risk Level: ${analysis.riskScore}%. Primary Concern: ${analysis.topConcern}.`,
+      reportSummary: `KANUNI AI ${imageMetadata ? 'Image' : 'Document'} Report for ${file.name}. Risk Level: ${analysis.riskLevel} (${analysis.riskScore}%). Primary Concern: ${analysis.topConcern}.`,
       ...analysis
     };
 
