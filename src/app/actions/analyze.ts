@@ -38,34 +38,35 @@ export async function processProcurementDocument(formData: FormData) {
     };
 
     /**
-     * Nuclear Extraction Engine: Recursively resolves and extracts text from ANY structure.
+     * Nuclear Extraction Engine (Ver H): Recursive + Specific LoadingTask resolution.
      */
     const nuclearExtract = async (data: any, depth = 0): Promise<string> => {
-      if (!data || depth > 8) return "";
+      if (!data || depth > 10) return "";
 
-      // 1. Resolve Promises/Tasks
+      // 1. Resolve Promises/Tasks (H-Specific bypass for non-enumerable LoadingTasks)
       try {
         if (typeof data.then === 'function') return nuclearExtract(await data, depth + 1);
-        if (data.promise && typeof data.promise.then === 'function') return nuclearExtract(await data.promise, depth + 1);
-        if (data.doc?.promise && typeof data.doc.promise.then === 'function') return nuclearExtract(await data.doc.promise, depth + 1);
-        if (data._capability?.promise && typeof data._capability.promise.then === 'function') return nuclearExtract(await data._capability.promise, depth + 1);
+
+        // PDF.js LoadingTask specific resolution
+        const p = data.promise || (data.doc && data.doc.promise) || data._capability?.promise;
+        if (p && typeof p.then === 'function') {
+          console.log(`[SERVER] LoadingTask detected at depth ${depth}. Awaiting promise...`);
+          return nuclearExtract(await p, depth + 1);
+        }
       } catch (e) {
         console.warn(`[SERVER] Resolution error at depth ${depth}`, e);
       }
 
-      // 2. Direct Content
-      if (typeof data === 'string' && data.trim().length > 50) return data;
-      if (data.text && typeof data.text === 'string' && data.text.trim().length > 50) return data.text;
-      if (data.content && typeof data.content === 'string' && data.content.trim().length > 50) return data.content;
+      // 2. Document Proxy (PDF.js standard)
+      const proxy = data.doc || data;
+      const numPages = proxy.numPages || proxy._pdfInfo?.numPages || (data.pdfInfo && data.pdfInfo.numPages) || 0;
 
-      // 3. Document Proxy (PDF.js standard)
-      const numPages = data.numPages || data._pdfInfo?.numPages || 0;
-      if (numPages > 0 && typeof data.getPage === 'function') {
+      if (numPages > 0 && typeof proxy.getPage === 'function') {
         console.log(`[SERVER] Detected PDFProxy (${numPages} pages). Extracting manually...`);
         let text = "";
         for (let i = 1; i <= numPages; i++) {
           try {
-            const page = await data.getPage(i);
+            const page = await proxy.getPage(i);
             const content = await page.getTextContent();
             text += content.items.map((it: any) => it.str || "").join(" ") + "\n";
           } catch (e) { }
@@ -73,17 +74,17 @@ export async function processProcurementDocument(formData: FormData) {
         if (text.trim().length > 50) return text;
       }
 
-      // 4. Brute Force Object Search
-      if (typeof data === 'object') {
-        // First check immediate children for text-like properties
-        const textKeys = ['text', 'content', 'value', 'body', 'data'];
-        for (const k of textKeys) {
-          if (typeof data[k] === 'string' && data[k].length > 50) return data[k];
-        }
+      // 3. Direct Content
+      if (typeof data === 'string' && data.trim().length > 50) return data;
+      const contentKeys = ['text', 'content', 'value', 'body', 'data'];
+      for (const k of contentKeys) {
+        if (data[k] && typeof data[k] === 'string' && data[k].length > 50) return data[k];
+      }
 
-        // Then recurse into children
+      // 4. Brute Force Object Search (Enhanced depth)
+      if (typeof data === 'object') {
         for (const k in data) {
-          if (data[k] && typeof data[k] === 'object' && k !== 'options' && k !== 'parent') {
+          if (data[k] && typeof data[k] === 'object' && !['options', 'parent', 'transport'].includes(k)) {
             const found = await nuclearExtract(data[k], depth + 1);
             if (found) return found;
           }
@@ -99,6 +100,7 @@ export async function processProcurementDocument(formData: FormData) {
         const callTarget = parser.parse || parser.pdf || parser;
         let result;
         try {
+          // Standard call
           result = await callTarget(dataBuffer);
         } catch (err: any) {
           if (err.message?.includes("new")) {
@@ -129,7 +131,7 @@ export async function processProcurementDocument(formData: FormData) {
     let imageMetadata = null;
 
     // 1. Extract Content
-    const DEPLOY_ID = "2026-01-28_G"; // Nuclear Extraction + High Intelligence
+    const DEPLOY_ID = "2026-01-28_H"; // Invasive Diagnostic + LoadingTask Bypass
     console.log(`[SERVER] [${DEPLOY_ID}] Processing ${file.name}...`);
 
     const fileNameLower = file.name.toLowerCase();
@@ -140,8 +142,19 @@ export async function processProcurementDocument(formData: FormData) {
         text = await nuclearExtract(raw);
 
         if (!text || text.trim().length === 0) {
-          const keys = Object.keys(raw || {}).join(', ');
-          return { success: false, error: `Critical Extraction Failure. (Ver: ${DEPLOY_ID}, Structure: [${keys}])` };
+          // --- LEVEL 3 DIAGNOSTIC ---
+          const report: any = {
+            keys: Object.keys(raw || {}),
+            docKeys: raw?.doc ? Object.keys(raw.doc) : 'N/A',
+            docType: typeof raw?.doc,
+            hasPromise: !!(raw?.promise || raw?.doc?.promise),
+            hasGetPage: !!(raw?.getPage || raw?.doc?.getPage)
+          };
+
+          return {
+            success: false,
+            error: `Critical Extraction Failure. (Ver: ${DEPLOY_ID}, L3: ${JSON.stringify(report)})`
+          };
         }
       } catch (e: any) {
         return { success: false, error: `Parser crash: ${e.message} (Ver: ${DEPLOY_ID})` };
