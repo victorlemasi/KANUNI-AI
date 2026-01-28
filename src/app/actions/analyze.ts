@@ -38,20 +38,24 @@ export async function processProcurementDocument(formData: FormData) {
     };
 
     /**
-     * Nuclear Extraction Engine (Ver H): Recursive + Specific LoadingTask resolution.
+     * Forensic Extraction Engine (Ver O): Exhaustive property scanning + structural bypass.
      */
     const nuclearExtract = async (data: any, depth = 0): Promise<string> => {
-      if (!data || depth > 10) return "";
+      if (!data || depth > 12) return "";
 
-      // 1. Resolve Promises/Tasks (H-Specific bypass for non-enumerable LoadingTasks)
+      // 1. Resolve Promises/Tasks (O-Specific: Invasively find thenables)
       try {
-        if (typeof data.then === 'function') return nuclearExtract(await data, depth + 1);
+        if (typeof data.then === 'function') {
+          console.log(`[SERVER] Thenable detected at depth ${depth}. Awaiting...`);
+          return nuclearExtract(await data, depth + 1);
+        }
 
-        // PDF.js LoadingTask specific resolution
-        const p = data.promise || (data.doc && data.doc.promise) || data._capability?.promise;
-        if (p && typeof p.then === 'function') {
-          console.log(`[SERVER] LoadingTask detected at depth ${depth}. Awaiting promise...`);
-          return nuclearExtract(await p, depth + 1);
+        // PDF.js LoadingTask specific resolution (Invasive search)
+        const allKeys = Object.getOwnPropertyNames(data);
+        const pKey = allKeys.find(k => k.includes('promise') || k.includes('_capability'));
+        if (pKey && typeof data[pKey]?.then === 'function') {
+          console.log(`[SERVER] Hidden promise '${pKey}' found at depth ${depth}. Awaiting...`);
+          return nuclearExtract(await data[pKey], depth + 1);
         }
       } catch (e) {
         console.warn(`[SERVER] Resolution error at depth ${depth}`, e);
@@ -81,11 +85,16 @@ export async function processProcurementDocument(formData: FormData) {
         if (data[k] && typeof data[k] === 'string' && data[k].length > 50) return data[k];
       }
 
-      // 4. Brute Force Object Search (Enhanced depth)
+      // 4. Brute Force Object Search (Invasive Scan)
       if (typeof data === 'object') {
-        for (const k in data) {
-          if (data[k] && typeof data[k] === 'object' && !['options', 'parent', 'transport'].includes(k)) {
-            const found = await nuclearExtract(data[k], depth + 1);
+        const props = Object.getOwnPropertyNames(data);
+        for (const k of props) {
+          // Bypass known recursive or useless keys
+          if (['options', 'parent', 'transport', '_capability'].includes(k)) continue;
+
+          const val = data[k];
+          if (val && typeof val === 'object') {
+            const found = await nuclearExtract(val, depth + 1);
             if (found) return found;
           }
         }
@@ -108,6 +117,13 @@ export async function processProcurementDocument(formData: FormData) {
             result = new parser(dataBuffer);
           } else throw err;
         }
+
+        // Ver O: If we get the [options, doc, progress] but it's not resolved
+        if (result && typeof result === 'object' && result.options && result.progress && !result.doc) {
+          console.log("[SERVER] Forensic Match: Detected unresolved Loading Task. Attempting root resolve...");
+          if (typeof result.then === 'function') return await result;
+        }
+
         return result;
       } catch (err: any) {
         console.error("[SERVER] PDF Invocation Failure", err);
@@ -131,7 +147,7 @@ export async function processProcurementDocument(formData: FormData) {
     let imageMetadata = null;
 
     // 1. Extract Content
-    const DEPLOY_ID = "2026-01-28_N"; // Sharp Resilience + Final Alignment
+    const DEPLOY_ID = "2026-01-28_O"; // Forensic Extraction Fix
     console.log(`[SERVER] [${DEPLOY_ID}] Processing ${file.name}...`);
 
     const fileNameLower = file.name.toLowerCase();
@@ -142,10 +158,10 @@ export async function processProcurementDocument(formData: FormData) {
         text = await nuclearExtract(raw);
 
         if (!text || text.trim().length === 0) {
-          // --- LEVEL 3 DIAGNOSTIC ---
+          // --- LEVEL 3 DIAGNOSTIC (Ver O) ---
           const report: any = {
-            keys: Object.keys(raw || {}),
-            docKeys: raw?.doc ? Object.keys(raw.doc) : 'N/A',
+            keys: Object.getOwnPropertyNames(raw || {}),
+            docKeys: raw?.doc ? Object.getOwnPropertyNames(raw.doc) : 'N/A',
             docType: typeof raw?.doc,
             hasPromise: !!(raw?.promise || raw?.doc?.promise),
             hasGetPage: !!(raw?.getPage || raw?.doc?.getPage)
