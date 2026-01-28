@@ -71,7 +71,34 @@ export async function processProcurementDocument(formData: FormData) {
     if (file.name.toLowerCase().endsWith(".pdf")) {
       try {
         const data = await parsePDF(pdfParser, buffer);
-        text = data.text;
+
+        // Diagnostic: What did we actually get back?
+        const dataKeys = Object.keys(data || {});
+        console.log(`[SERVER] PDF Parse Result Keys: [${dataKeys.join(', ')}]`);
+
+        // 1. Standard pdf-parse
+        if (data && typeof data.text === 'string') {
+          text = data.text;
+        }
+        // 2. Fallback for other variants/forks
+        else if (data && typeof data === 'string') {
+          text = data;
+        }
+        else if (data && data.content && typeof data.content === 'string') {
+          text = data.content;
+        }
+        else if (data && data.value && typeof data.value === 'string') {
+          text = data.value;
+        }
+
+        if (!text || text.trim().length === 0) {
+          console.warn("[SERVER] PDF parsed but resulting text is empty. Data structure:", JSON.stringify(dataKeys));
+          return {
+            success: false,
+            error: `PDF parsed but no text was extracted. (Result structure: [${dataKeys.join(', ')}])`
+          };
+        }
+
       } catch (pdfErr: any) {
         console.error("[SERVER] PDF Parse Error:", pdfErr);
         return { success: false, error: `Failed to parse PDF: ${pdfErr.message}` };
