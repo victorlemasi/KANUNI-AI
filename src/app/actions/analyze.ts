@@ -131,7 +131,7 @@ export async function processProcurementDocument(formData: FormData) {
     let imageMetadata = null;
 
     // 1. Extract Content
-    const DEPLOY_ID = "2026-01-28_K"; // Word Parser Hotfix
+    const DEPLOY_ID = "2026-01-28_L"; // Backend API Scaffold + Persistence
     console.log(`[SERVER] [${DEPLOY_ID}] Processing ${file.name}...`);
 
     const fileNameLower = file.name.toLowerCase();
@@ -203,6 +203,43 @@ export async function processProcurementDocument(formData: FormData) {
       reportSummary: `KANUNI AI ${imageMetadata ? 'Image' : 'Document'} Report for ${file.name}. Risk Level: ${analysis.riskLevel} (${analysis.riskScore}%). Primary Concern: ${analysis.topConcern}.`,
       ...analysis
     };
+
+    // 3. PERSISTENCE (Phase 16)
+    try {
+      console.log("[SERVER] Persisting results to database...");
+      const prisma = (await import("@/lib/db")).default;
+      await prisma.procurement.create({
+        data: {
+          fileName: file.name,
+          fileSize: file.size,
+          riskScore: analysis.riskScore,
+          riskLevel: analysis.riskLevel,
+          topConcern: analysis.topConcern,
+          analysisMode: analysis.mode,
+          findings: JSON.stringify(analysis.findings),
+          suggestions: JSON.stringify(analysis.suggestions),
+          pillarAlignment: JSON.stringify(analysis.pillarAlignment),
+          textPreview: text.substring(0, 500),
+          alerts: {
+            create: (analysis.alerts || []).map((msg: string) => ({
+              type: 'ANOMALY',
+              severity: analysis.riskLevel,
+              message: msg
+            }))
+          },
+          auditTrails: {
+            create: {
+              action: 'ANALYSIS',
+              details: `Document ${file.name} analyzed in ${analysisType} mode.`
+            }
+          }
+        }
+      });
+      console.log("[SERVER] Persistence complete.");
+    } catch (dbErr: any) {
+      console.error("[SERVER] Database persistence failed:", dbErr);
+      // We don't fail the request if persistence fails, just log it.
+    }
 
     console.log("[SERVER] Request finalized.");
     return { success: true, data: finalResult };

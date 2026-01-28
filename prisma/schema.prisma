@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Procurement {
+  id              String   @id @default(cuid())
+  fileName        String
+  fileSize        Int
+  status          String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  riskScore       Int
+  riskLevel       String
+  topConcern      String
+  analysisMode    String
+  textPreview     String?
+  findings        String?  // JSON stringified findings
+  suggestions     String?  // JSON stringified suggestions
+  pillarAlignment String?  // JSON stringified pillar alignment scores
+  timestamp       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  alerts          ComplianceAlert[]
+  auditTrails     AuditLog[]
+}
+
+model ComplianceAlert {
+  id            String   @id @default(cuid())
+  procurementId String
+  type          String   // ANOMALY, COMPLIANCE_VIOLATION, VENDOR_RISK
+  severity      String   // LOW, MEDIUM, HIGH, CRITICAL
+  message       String
+  context       String?
+  timestamp     DateTime @default(now())
+
+  procurement   Procurement @relation(fields: [procurementId], references: [id])
+}
+
+model Vendor {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  concentration   Float    @default(0.0)
+  totalMentions   Int      @default(0)
+  riskLevel       String   @default("LOW")
+  behavioralTags  String?  // Comma separated tags like "SLICING", "FREQUENT_BIDS"
+  lastSeen        DateTime @default(now())
+}
+
+model AuditLog {
+  id              String   @id @default(cuid())
+  procurementId   String?
+  action          String   // ANALYSIS, APPROVAL, REJECTION, SYSTEM_UPDATE
+  actor           String   @default("AI_SYSTEM")
+  details         String?
+  timestamp       DateTime @default(now())
+
+  procurement     Procurement? @relation(fields: [procurementId], references: [id])
+}
