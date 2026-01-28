@@ -41,15 +41,24 @@ export async function processProcurementDocument(formData: FormData) {
      * Fallback for when the parser returns a PDFDocumentProxy (common on Render)
      */
     const extractFromDocProxy = async (doc: any): Promise<string> => {
-      if (!doc || !doc.numPages) return "";
-      console.log(`[SERVER] Extracting from Document Proxy (${doc.numPages} pages)...`);
+      if (!doc) return "";
+
+      // Attempt to find page count in various standard locations
+      const numPages = doc.numPages || doc._pdfInfo?.numPages || 0;
+
+      console.log(`[SERVER] Extracting from Document Proxy. Pages detected: ${numPages}. Keys: [${Object.keys(doc).join(', ')}]`);
+
+      if (numPages === 0) return "";
+
       let fullText = "";
-      for (let i = 1; i <= doc.numPages; i++) {
+      for (let i = 1; i <= numPages; i++) {
         try {
           const page = await doc.getPage(i);
           const content = await page.getTextContent();
-          const pageText = content.items.map((item: any) => item.str).join(" ");
-          fullText += pageText + "\n";
+          if (content && content.items) {
+            const pageText = content.items.map((item: any) => item.str || "").join(" ");
+            fullText += pageText + "\n";
+          }
         } catch (pageErr) {
           console.warn(`[SERVER] Failed to extract from page ${i}`, pageErr);
         }
@@ -59,13 +68,27 @@ export async function processProcurementDocument(formData: FormData) {
 
     const parsePDF = async (parser: any, dataBuffer: Buffer) => {
       try {
-        // Try as a normal function call first (standard for pdf-parse)
-        return await parser(dataBuffer);
+        console.log("[SERVER] Calling PDF parser...");
+        let result = await parser(dataBuffer);
+
+        // Handle PDFLoadingTask pattern (common in some pdf-parse forks)
+        if (result && result.promise && typeof result.promise.then === 'function') {
+          console.log("[SERVER] PDFLoadingTask detected, awaiting promise...");
+          result = await result.promise;
+        }
+
+        return result;
       } catch (err: any) {
-        // Fallback for class constructors in some production environments
+        // Fallback for class constructors
         if (err.message && (err.message.includes("Class constructor") || err.message.includes("cannot be invoked without 'new'"))) {
           console.log("[SERVER] PDF Parser detected as class, instantiating with 'new'...");
-          return await new parser(dataBuffer);
+          let result = await new parser(dataBuffer);
+
+          if (result && result.promise && typeof result.promise.then === 'function') {
+            console.log("[SERVER] PDFLoadingTask (from class) detected, awaiting promise...");
+            result = await result.promise;
+          }
+          return result;
         }
         throw err;
       }
@@ -88,7 +111,7 @@ export async function processProcurementDocument(formData: FormData) {
     let imageMetadata = null;
 
     // 1. Extract Content
-    const DEPLOY_ID = "2026-01-28_C"; // Proxy Fallback + Image Support
+    const DEPLOY_ID = "2026-01-28_D"; // Robust Proxy Extraction
     console.log(`[SERVER] [${DEPLOY_ID}] Starting content extraction from ${file.name}...`);
 
     const fileNameLower = file.name.toLowerCase();
@@ -97,12 +120,16 @@ export async function processProcurementDocument(formData: FormData) {
       try {
         const data = await parsePDF(pdfParser, buffer);
 
+        // Diagnostic: What did we actually get back?
+        const dataKeys = Object.keys(data || {});
+        console.log(`[SERVER] PDF Parse Result Keys: [${dataKeys.join(', ')}]`);
+
         // --- TEXT EXTRACTION STRATEGY ---
 
         // 1. Check for PDFDocumentProxy handle (common on Render bundle variants)
-        if (data && data.doc) {
-          console.log("[SERVER] Proxy handle [doc] detected. Using manual extraction fallback.");
-          text = await extractFromDocProxy(data.doc);
+        if (data && (data.doc || data.numPages || data._pdfInfo)) {
+          console.log("[SERVER] Document Proxy detected. Using manual extraction fallback.");
+          text = await extractFromDocProxy(data.doc || data);
         }
         // 2. Standard location
         else if (data && typeof data.text === 'string') {
