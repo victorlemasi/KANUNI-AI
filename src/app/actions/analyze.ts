@@ -15,11 +15,20 @@ export async function processProcurementDocument(formData: FormData) {
     console.log(`[SERVER] [${analysisType}] Starting analysis for: ${file.name} (${file.size} bytes)`);
 
     // Dynamic require to prevent top-level bundling issues in Next.js
-    const pdf = require("pdf-parse");
-    const mammoth = require("mammoth");
+    const pdfModule = require("pdf-parse");
+    const mammothModule = require("mammoth");
 
-    const pdfParser = typeof pdf === 'function' ? pdf : pdf.default || pdf;
-    const wordParser = typeof mammoth === 'function' ? mammoth : mammoth.default || mammoth;
+    console.log(`[SERVER] Debug: pdf-parse type: ${typeof pdfModule}, keys: ${Object.keys(pdfModule || {})}`);
+    console.log(`[SERVER] Debug: mammoth type: ${typeof mammothModule}, keys: ${Object.keys(mammothModule || {})}`);
+
+    // Robust interop for CJS/ESM
+    const pdfParser = typeof pdfModule === 'function' ? pdfModule : (pdfModule.default && typeof pdfModule.default === 'function' ? pdfModule.default : null);
+    const wordParser = mammothModule.extractRawText ? mammothModule : (mammothModule.default?.extractRawText ? mammothModule.default : null);
+
+    if (!pdfParser && file.name.toLowerCase().endsWith(".pdf")) {
+      console.error("[SERVER] PDF Parser is not a function!", pdfModule);
+      return { success: false, error: "PDF initialization error: Parser not found." };
+    }
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
@@ -28,9 +37,17 @@ export async function processProcurementDocument(formData: FormData) {
     // 1. Extract Text
     console.log(`[SERVER] Milestone: Extracting text from ${file.name}...`);
     if (file.name.toLowerCase().endsWith(".pdf")) {
-      const data = await pdfParser(buffer);
-      text = data.text;
+      try {
+        const data = await pdfParser(buffer);
+        text = data.text;
+      } catch (pdfErr: any) {
+        console.error("[SERVER] PDF Parse Error:", pdfErr);
+        return { success: false, error: `Failed to parse PDF: ${pdfErr.message}` };
+      }
     } else if (file.name.toLowerCase().endsWith(".docx")) {
+      if (!wordParser) {
+        return { success: false, error: "Word parser initialization error." };
+      }
       const result = await wordParser.extractRawText({ buffer });
       text = result.value;
     } else {
