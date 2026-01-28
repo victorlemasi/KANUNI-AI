@@ -17,12 +17,38 @@ export async function processProcurementDocument(formData: FormData) {
     // Aggressive interop helper
     const getParser = (mod: any, funcName?: string) => {
       if (!mod) return null;
+
+      // If the module itself is a function/class, return it
       if (typeof mod === 'function') return mod;
-      if (mod.default && typeof mod.default === 'function') return mod.default;
-      if (typeof mod.PDFParse === 'function') return mod.PDFParse; // Specific to the version/fork on Render
+
+      // Check for .default
+      if (mod.default) {
+        if (typeof mod.default === 'function') return mod.default;
+        if (typeof mod.default === 'object' && funcName && typeof mod.default[funcName] === 'function') return mod.default[funcName];
+      }
+
+      // Specific known keys for common PDF/Word libraries
+      if (typeof mod.PDFParse === 'function') return mod.PDFParse;
+      if (typeof mod.PdfParse === 'function') return mod.PdfParse;
+
+      // Look for the requested function name in the top level
       if (funcName && typeof mod[funcName] === 'function') return mod[funcName];
-      if (funcName && mod.default && typeof mod.default[funcName] === 'function') return mod.default[funcName];
+
       return null;
+    };
+
+    const parsePDF = async (parser: any, dataBuffer: Buffer) => {
+      try {
+        // Try as a normal function call first (standard for pdf-parse)
+        return await parser(dataBuffer);
+      } catch (err: any) {
+        // Fallback for class constructors in some production environments
+        if (err.message && (err.message.includes("Class constructor") || err.message.includes("cannot be invoked without 'new'"))) {
+          console.log("[SERVER] PDF Parser detected as class, instantiating with 'new'...");
+          return await new parser(dataBuffer);
+        }
+        throw err;
+      }
     };
 
     const pdfModule = require("pdf-parse");
@@ -44,8 +70,7 @@ export async function processProcurementDocument(formData: FormData) {
     console.log(`[SERVER] Milestone: Extracting text from ${file.name}...`);
     if (file.name.toLowerCase().endsWith(".pdf")) {
       try {
-        // pdf-parse expects a buffer and returns a promise
-        const data = await pdfParser(buffer);
+        const data = await parsePDF(pdfParser, buffer);
         text = data.text;
       } catch (pdfErr: any) {
         console.error("[SERVER] PDF Parse Error:", pdfErr);
