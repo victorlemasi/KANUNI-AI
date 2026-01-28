@@ -131,7 +131,7 @@ export async function processProcurementDocument(formData: FormData) {
     let imageMetadata = null;
 
     // 1. Extract Content
-    const DEPLOY_ID = "2026-01-28_I"; // High Intelligence + PPDA + Risk Levels
+    const DEPLOY_ID = "2026-01-28_J"; // Advanced Anomaly Detection + Statistical Intelligence
     console.log(`[SERVER] [${DEPLOY_ID}] Processing ${file.name}...`);
 
     const fileNameLower = file.name.toLowerCase();
