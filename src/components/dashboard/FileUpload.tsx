@@ -15,8 +15,9 @@ export default function FileUpload() {
         if (e.target.files && e.target.files[0]) {
             const selected = e.target.files[0];
             const ext = selected.name.split('.').pop()?.toLowerCase();
-            if (ext !== 'pdf' && ext !== 'docx') {
-                setError("Please upload a PDF or Word (.docx) file");
+            const allowed = ['pdf', 'docx', 'png', 'jpg', 'jpeg', 'webp'];
+            if (!ext || !allowed.includes(ext)) {
+                setError("Please upload a PDF, Word, or Image file (.png, .jpg, .webp)");
                 return;
             }
             setFile(selected);
@@ -60,9 +61,9 @@ export default function FileUpload() {
             } else if (errorMessage === "Failed to fetch" || errorMessage.includes("fetch")) {
                 errorMessage = "The server is taking too long to respond or has crashed. This usually happens with large documents on Render's free tier. Please try a smaller file.";
             } else if (errorMessage.includes("No readable text")) {
-                errorMessage = "Could not extract text from the document. Please ensure it's not a scanned image or empty file.";
-            } else if (errorMessage.includes("Unsupported file format")) {
-                errorMessage = "Please upload a PDF or Word (.docx) file only.";
+                errorMessage = "Could not extract content from the file. Please ensure it's not empty or a corrupted image.";
+            } else if (errorMessage.includes("Unsupported file format") || errorMessage.includes("Unsupported format")) {
+                errorMessage = "Please upload a PDF, Word, or Image file (.png, .jpg, .jpeg, .webp).";
             }
 
             setError(errorMessage);
@@ -127,7 +128,7 @@ AUDIT TRAIL:
                 </div>
                 <div>
                     <h3 className="text-lg font-bold uppercase tracking-wider">Multi-Format Compliance Intake</h3>
-                    <p className="text-neutral-500 text-sm">Select Analysis Mode & Upload Document</p>
+                    <p className="text-neutral-500 text-sm">Select Analysis Mode & Upload Document or Image</p>
                 </div>
 
                 {/* Analysis Mode Toggle */}
@@ -172,14 +173,14 @@ AUDIT TRAIL:
 
                 <input
                     type="file"
-                    accept=".pdf,.docx"
-                    onChange={handleFileChange}
+                    id="file-upload"
                     className="hidden"
-                    id="doc-upload"
+                    onChange={handleFileChange}
+                    accept=".pdf,.docx,.png,.jpg,.jpeg,.webp"
                 />
 
                 <label
-                    htmlFor="doc-upload"
+                    htmlFor="file-upload"
                     className="inline-block px-6 py-2 glass hover:bg-white/5 rounded-lg cursor-pointer transition-colors"
                 >
                     {file ? (
@@ -187,7 +188,7 @@ AUDIT TRAIL:
                             <FileText className="w-4 h-4 text-accent-400" />
                             {file.name}
                         </span>
-                    ) : "Choose PDF or Word File"}
+                    ) : "Choose PDF, Word, or Image"}
                 </label>
 
                 {file && !isUploading && !result && (
