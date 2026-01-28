@@ -50,8 +50,12 @@ export async function processProcurementDocument(formData: FormData) {
 
   // 3. Optional: Sharp processing foundation
   try {
-    const metadata = await sharp(Buffer.from([0, 0, 0, 0])).metadata();
-  } catch (e) { }
+    if (sharp) {
+      const metadata = await sharp(Buffer.from([0, 0, 0, 0])).metadata();
+    }
+  } catch (e) {
+    console.warn("Sharp metadata extraction failed (optional step):", e);
+  }
 
   return {
     fileName: file.name,
