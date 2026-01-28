@@ -38,61 +38,55 @@ export async function processProcurementDocument(formData: FormData) {
     };
 
     /**
-     * Aggressive recursive content extractor for PDF data structures.
-     * Handles Promises, LoadingTasks, DocumentProxies, and standard result objects.
+     * Nuclear Extraction Engine: Recursively resolves and extracts text from ANY structure.
      */
-    const resolveAndExtractText = async (data: any, depth = 0): Promise<string> => {
-      if (!data || depth > 5) return "";
+    const nuclearExtract = async (data: any, depth = 0): Promise<string> => {
+      if (!data || depth > 8) return "";
 
-      // 1. Handle Promises/LoadingTasks/Proxies aggressively
+      // 1. Resolve Promises/Tasks
       try {
-        if (typeof data.then === 'function') return resolveAndExtractText(await data, depth + 1);
-        if (data.promise && typeof data.promise.then === 'function') return resolveAndExtractText(await data.promise, depth + 1);
-        if (data.doc && typeof data.doc.then === 'function') return resolveAndExtractText(await data.doc, depth + 1);
-        if (data.doc?.promise && typeof data.doc.promise.then === 'function') return resolveAndExtractText(await data.doc.promise, depth + 1);
+        if (typeof data.then === 'function') return nuclearExtract(await data, depth + 1);
+        if (data.promise && typeof data.promise.then === 'function') return nuclearExtract(await data.promise, depth + 1);
+        if (data.doc?.promise && typeof data.doc.promise.then === 'function') return nuclearExtract(await data.doc.promise, depth + 1);
+        if (data._capability?.promise && typeof data._capability.promise.then === 'function') return nuclearExtract(await data._capability.promise, depth + 1);
       } catch (e) {
-        console.warn(`[SERVER] Resolution failure at depth ${depth}`, e);
+        console.warn(`[SERVER] Resolution error at depth ${depth}`, e);
       }
 
-      // 2. Direct string match
-      if (typeof data === 'string' && data.length > 50) return data;
+      // 2. Direct Content
+      if (typeof data === 'string' && data.trim().length > 50) return data;
+      if (data.text && typeof data.text === 'string' && data.text.trim().length > 50) return data.text;
+      if (data.content && typeof data.content === 'string' && data.content.trim().length > 50) return data.content;
 
-      // 3. Standard text property
-      if (data.text && typeof data.text === 'string' && data.text.length > 50) return data.text;
-
-      // 4. Check for nested Document/Proxy
-      if (data.doc && data.doc !== data) {
-        const found = await resolveAndExtractText(data.doc, depth + 1);
-        if (found) return found;
-      }
-
-      // 5. Manual Page-by-Page Extraction (PDFDocumentProxy)
+      // 3. Document Proxy (PDF.js standard)
       const numPages = data.numPages || data._pdfInfo?.numPages || 0;
       if (numPages > 0 && typeof data.getPage === 'function') {
-        console.log(`[SERVER] Detected PDF Proxy (${numPages} pages). Extracting manually...`);
-        let fullText = "";
+        console.log(`[SERVER] Detected PDFProxy (${numPages} pages). Extracting manually...`);
+        let text = "";
         for (let i = 1; i <= numPages; i++) {
           try {
             const page = await data.getPage(i);
             const content = await page.getTextContent();
-            if (content?.items) {
-              const pageText = content.items.map((item: any) => item.str || "").join(" ");
-              fullText += pageText + "\n";
-            }
-          } catch (e) {
-            console.warn(`[SERVER] Page ${i} extraction failed`, e);
-          }
+            text += content.items.map((it: any) => it.str || "").join(" ") + "\n";
+          } catch (e) { }
         }
-        if (fullText.trim().length > 0) return fullText;
+        if (text.trim().length > 50) return text;
       }
 
-      // 6. Deep Search Fallback (Look for any string > 100 chars in children)
-      for (const key in data) {
-        if (typeof data[key] === 'object' && data[key] !== null && key !== 'doc' && key !== 'options') {
-          const found = await resolveAndExtractText(data[key], depth + 1);
-          if (found) return found;
-        } else if (typeof data[key] === 'string' && data[key].length > 100) {
-          return data[key];
+      // 4. Brute Force Object Search
+      if (typeof data === 'object') {
+        // First check immediate children for text-like properties
+        const textKeys = ['text', 'content', 'value', 'body', 'data'];
+        for (const k of textKeys) {
+          if (typeof data[k] === 'string' && data[k].length > 50) return data[k];
+        }
+
+        // Then recurse into children
+        for (const k in data) {
+          if (data[k] && typeof data[k] === 'object' && k !== 'options' && k !== 'parent') {
+            const found = await nuclearExtract(data[k], depth + 1);
+            if (found) return found;
+          }
         }
       }
 
@@ -102,21 +96,19 @@ export async function processProcurementDocument(formData: FormData) {
     const parsePDF = async (parser: any, dataBuffer: Buffer) => {
       try {
         console.log("[SERVER] Calling PDF parser...");
-        // Handle both class/function and potential .pdf/.parse methods
-        const callParser = typeof parser.parse === 'function' ? parser.parse :
-          (typeof parser.pdf === 'function' ? parser.pdf : parser);
-
+        const callTarget = parser.parse || parser.pdf || parser;
+        let result;
         try {
-          return await callParser(dataBuffer);
+          result = await callTarget(dataBuffer);
         } catch (err: any) {
-          if (err.message?.includes("Class constructor") || err.message?.includes("without 'new'")) {
-            console.log("[SERVER] Instantiating parser with 'new'...");
-            return new parser(dataBuffer);
-          }
-          throw err;
+          if (err.message?.includes("new")) {
+            console.log("[SERVER] Using constructor-call...");
+            result = new parser(dataBuffer);
+          } else throw err;
         }
+        return result;
       } catch (err: any) {
-        console.error("[SERVER] PDF Invocation Error:", err);
+        console.error("[SERVER] PDF Invocation Failure", err);
         throw err;
       }
     };
@@ -128,8 +120,7 @@ export async function processProcurementDocument(formData: FormData) {
     const wordParser = getParser(mammothModule, 'extractRawText');
 
     if (!pdfParser && file.name.toLowerCase().endsWith(".pdf")) {
-      console.error("[SERVER] PDF Parser Resolution Failed");
-      return { success: false, error: "PDF initialization error: Analysis engine could not be initialized." };
+      return { success: false, error: "Analysis engine initialization failed." };
     }
 
     const bytes = await file.arrayBuffer();
@@ -138,41 +129,22 @@ export async function processProcurementDocument(formData: FormData) {
     let imageMetadata = null;
 
     // 1. Extract Content
-    const DEPLOY_ID = "2026-01-28_F"; // Deep Diagnostic + doc.promise support
-    console.log(`[SERVER] [${DEPLOY_ID}] Starting content extraction from ${file.name}...`);
+    const DEPLOY_ID = "2026-01-28_G"; // Nuclear Extraction + High Intelligence
+    console.log(`[SERVER] [${DEPLOY_ID}] Processing ${file.name}...`);
 
     const fileNameLower = file.name.toLowerCase();
 
     if (fileNameLower.endsWith(".pdf")) {
       try {
-        const rawResult = await parsePDF(pdfParser, buffer);
-
-        // Run unified extraction engine
-        text = await resolveAndExtractText(rawResult);
+        const raw = await parsePDF(pdfParser, buffer);
+        text = await nuclearExtract(raw);
 
         if (!text || text.trim().length === 0) {
-          // --- DEEP DIAGNOSTIC (Level 2) ---
-          const info: any = {};
-          try {
-            for (const k of Object.keys(rawResult || {})) {
-              const val = rawResult[k];
-              info[k] = {
-                type: typeof val,
-                keys: (val && typeof val === 'object') ? Object.keys(val).slice(0, 10) : []
-              };
-              if (val?.doc) info[k].docKeys = Object.keys(val.doc).slice(0, 10);
-            }
-          } catch (e) { }
-
-          return {
-            success: false,
-            error: `Could not extract text from PDF. (Ver: ${DEPLOY_ID}, Structure: ${JSON.stringify(info)})`
-          };
+          const keys = Object.keys(raw || {}).join(', ');
+          return { success: false, error: `Critical Extraction Failure. (Ver: ${DEPLOY_ID}, Structure: [${keys}])` };
         }
-
-      } catch (pdfErr: any) {
-        console.error("[SERVER] PDF Parse Error:", pdfErr);
-        return { success: false, error: `Failed to parse PDF: ${pdfErr.message} (Ver: ${DEPLOY_ID})` };
+      } catch (e: any) {
+        return { success: false, error: `Parser crash: ${e.message} (Ver: ${DEPLOY_ID})` };
       }
     } else if (fileNameLower.endsWith(".docx")) {
       if (!wordParser) return { success: false, error: "Word parser resolution failed." };
