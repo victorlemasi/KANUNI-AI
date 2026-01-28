@@ -308,9 +308,9 @@ AUDIT TRAIL:
                                 <div className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Platform Pillar Alignment</div>
                                 <div className="space-y-3">
                                     {[
-                                        { name: "Decision Intelligence", val: result.pillarAlignment.decisionIntelligence, color: "bg-primary-500" },
-                                        { name: "Compliance Automation", val: result.pillarAlignment.complianceAutomation, color: "bg-accent-500" },
-                                        { name: "HITL Governance", val: result.pillarAlignment.hitlGovernance, color: "bg-success-500" }
+                                        { name: "Decision Intelligence", val: result?.pillarAlignment?.decisionIntelligence || 0, color: "bg-primary-500" },
+                                        { name: "Compliance Automation", val: result?.pillarAlignment?.complianceAutomation || 0, color: "bg-accent-500" },
+                                        { name: "HITL Governance", val: result?.pillarAlignment?.hitlGovernance || 0, color: "bg-success-500" }
                                     ].map((p) => (
                                         <div key={p.name} className="space-y-1">
                                             <div className="flex justify-between text-[9px] uppercase font-black text-neutral-400">

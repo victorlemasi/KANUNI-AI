@@ -146,10 +146,15 @@ export async function analyzeDocument(text: string, mode: 'procurement' | 'contr
         timestamp: new Date().toISOString(),
         mode,
         findings: [],
-        recommendations: [],
+        suggestions: [],
         riskScore: 0,
         riskLevel: 'Low',
-        alerts: []
+        alerts: [],
+        pillarAlignment: {
+            decisionIntelligence: 0.8,
+            complianceAutomation: 0.8,
+            hitlGovernance: 0.8
+        }
     };
 
     // 1. Core Logic
@@ -196,6 +201,12 @@ export async function analyzeDocument(text: string, mode: 'procurement' | 'contr
 
     analysis.topConcern = analysis.findings[0]?.text || "No major concerns";
     analysis.alerts.push(...(analysis.riskLevel === 'Critical' ? [`AUDIT ALERT: Immediate ${mode} review required.`] : []));
+
+    analysis.pillarAlignment = {
+        decisionIntelligence: analysis.riskScore > 50 ? 0.3 : 0.85,
+        complianceAutomation: 0.9,
+        hitlGovernance: 0.95,
+    };
 
     analysis.auditTrail = {
         model: "mobilebert-uncased-mnli",
