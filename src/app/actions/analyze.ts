@@ -30,12 +30,16 @@ export async function processProcurementDocument(formData: FormData) {
     const pdfParser = getParser(pdfModule);
     const wordParser = getParser(mammothModule, 'extractRawText');
 
-    console.log(`[SERVER] Debug: pdf-parse keys: ${Object.keys(pdfModule || {})}`);
-    console.log(`[SERVER] Debug: mammoth keys: ${Object.keys(mammothModule || {})}`);
+    const pdfKeys = Object.keys(pdfModule || {});
+    const mammothKeys = Object.keys(mammothModule || {});
+
+    console.log(`[SERVER] Debug: pdf-parse keys: ${pdfKeys}`);
+    console.log(`[SERVER] Debug: mammoth keys: ${mammothKeys}`);
 
     if (!pdfParser && file.name.toLowerCase().endsWith(".pdf")) {
-      console.error("[SERVER] PDF Parser Resolution Failed. Structure:", JSON.stringify(Object.keys(pdfModule || {})));
-      return { success: false, error: "PDF initialization error: Parser function not resolved." };
+      const structureInfo = `Type: ${typeof pdfModule}, Keys: [${pdfKeys.join(', ')}]`;
+      console.error("[SERVER] PDF Parser Resolution Failed. Structure:", structureInfo);
+      return { success: false, error: `PDF initialization error: Parser function not resolved. (${structureInfo})` };
     }
 
     const bytes = await file.arrayBuffer();
