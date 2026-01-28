@@ -131,7 +131,7 @@ export async function processProcurementDocument(formData: FormData) {
     let imageMetadata = null;
 
     // 1. Extract Content
-    const DEPLOY_ID = "2026-01-28_L"; // Backend API Scaffold + Persistence
+    const DEPLOY_ID = "2026-01-28_N"; // Sharp Resilience + Final Alignment
     console.log(`[SERVER] [${DEPLOY_ID}] Processing ${file.name}...`);
 
     const fileNameLower = file.name.toLowerCase();
