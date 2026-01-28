@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-    serverExternalPackages: ["sharp", "onnxruntime-node", "@xenova/transformers", "pdf-parse", "mammoth"],
+    serverExternalPackages: ["sharp", "onnxruntime-node", "@xenova/transformers"],
     output: 'standalone',
     images: {
         unoptimized: true,

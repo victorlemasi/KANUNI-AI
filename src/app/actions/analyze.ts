@@ -14,20 +14,28 @@ export async function processProcurementDocument(formData: FormData) {
   try {
     console.log(`[SERVER] [${analysisType}] Starting analysis for: ${file.name} (${file.size} bytes)`);
 
-    // Dynamic require to prevent top-level bundling issues in Next.js
+    // Aggressive interop helper
+    const getParser = (mod: any, funcName?: string) => {
+      if (!mod) return null;
+      if (typeof mod === 'function') return mod;
+      if (mod.default && typeof mod.default === 'function') return mod.default;
+      if (funcName && typeof mod[funcName] === 'function') return mod[funcName];
+      if (funcName && mod.default && typeof mod.default[funcName] === 'function') return mod.default[funcName];
+      return null;
+    };
+
     const pdfModule = require("pdf-parse");
     const mammothModule = require("mammoth");
 
-    console.log(`[SERVER] Debug: pdf-parse type: ${typeof pdfModule}, keys: ${Object.keys(pdfModule || {})}`);
-    console.log(`[SERVER] Debug: mammoth type: ${typeof mammothModule}, keys: ${Object.keys(mammothModule || {})}`);
+    const pdfParser = getParser(pdfModule);
+    const wordParser = getParser(mammothModule, 'extractRawText');
 
-    // Robust interop for CJS/ESM
-    const pdfParser = typeof pdfModule === 'function' ? pdfModule : (pdfModule.default && typeof pdfModule.default === 'function' ? pdfModule.default : null);
-    const wordParser = mammothModule.extractRawText ? mammothModule : (mammothModule.default?.extractRawText ? mammothModule.default : null);
+    console.log(`[SERVER] Debug: pdf-parse keys: ${Object.keys(pdfModule || {})}`);
+    console.log(`[SERVER] Debug: mammoth keys: ${Object.keys(mammothModule || {})}`);
 
     if (!pdfParser && file.name.toLowerCase().endsWith(".pdf")) {
-      console.error("[SERVER] PDF Parser is not a function!", pdfModule);
-      return { success: false, error: "PDF initialization error: Parser not found." };
+      console.error("[SERVER] PDF Parser Resolution Failed. Structure:", JSON.stringify(Object.keys(pdfModule || {})));
+      return { success: false, error: "PDF initialization error: Parser function not resolved." };
     }
 
     const bytes = await file.arrayBuffer();
@@ -38,6 +46,7 @@ export async function processProcurementDocument(formData: FormData) {
     console.log(`[SERVER] Milestone: Extracting text from ${file.name}...`);
     if (file.name.toLowerCase().endsWith(".pdf")) {
       try {
+        // pdf-parse expects a buffer and returns a promise
         const data = await pdfParser(buffer);
         text = data.text;
       } catch (pdfErr: any) {
@@ -45,8 +54,8 @@ export async function processProcurementDocument(formData: FormData) {
         return { success: false, error: `Failed to parse PDF: ${pdfErr.message}` };
       }
     } else if (file.name.toLowerCase().endsWith(".docx")) {
-      if (!wordParser) {
-        return { success: false, error: "Word parser initialization error." };
+      if (!wordParser || typeof wordParser.extractRawText !== 'function') {
+        return { success: false, error: "Word parser resolution failed." };
       }
       const result = await wordParser.extractRawText({ buffer });
       text = result.value;
