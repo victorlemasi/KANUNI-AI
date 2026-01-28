@@ -1,7 +1,6 @@
 "use server";
 
 import { analyzeText } from "@/lib/analysis";
-import sharp from "sharp";
 
 export async function processProcurementDocument(formData: FormData) {
   const file = formData.get("file") as File;
@@ -50,6 +49,8 @@ export async function processProcurementDocument(formData: FormData) {
 
   // 3. Optional: Sharp processing foundation
   try {
+    // Dynamic require to prevent crash if sharp binary is missing or incompatible
+    const sharp = require("sharp");
     if (sharp) {
       const metadata = await sharp(Buffer.from([0, 0, 0, 0])).metadata();
     }
