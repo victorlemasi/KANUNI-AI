@@ -165,20 +165,27 @@ export async function processProcurementDocument(formData: FormData) {
       text = result.value;
     } else if (fileNameLower.match(/\.(png|jpg|jpeg|webp)$/)) {
       // --- IMAGE ANALYSIS ---
-      console.log(`[SERVER] Milestone: Processing image ${file.name} with sharp...`);
       try {
-        const sharp = require("sharp");
-        const image = sharp(buffer);
-        imageMetadata = await image.metadata();
+        // We use a guarded require to prevent module-level crashes if native binaries are absent
+        let sharp;
+        try {
+          sharp = require("sharp");
+        } catch {
+          console.warn("[SERVER] Sharp native module not available. Falling back to metadata-lite.");
+        }
 
-        // For now, since we don't have a local OCR engine active,
-        // we'll analyze the file context if text extraction isn't possible.
-        text = `Image Analysis: ${file.name}. \nFormat: ${imageMetadata.format}. \nDimensions: ${imageMetadata.width}x${imageMetadata.height}. \nSpace: ${imageMetadata.space}.`;
-
-        console.log("[SERVER] Image metadata extracted successfully.");
+        if (sharp) {
+          const image = sharp(buffer);
+          imageMetadata = await image.metadata();
+          text = `Image Analysis: ${file.name}. \nFormat: ${imageMetadata.format}. \nDimensions: ${imageMetadata.width}x${imageMetadata.height}. \nSpace: ${imageMetadata.space}.`;
+          console.log("[SERVER] Image metadata extracted successfully.");
+        } else {
+          imageMetadata = { format: fileNameLower.split('.').pop(), width: 0, height: 0, space: 'unknown' };
+          text = `Image Metadata (Simplified): ${file.name}. \n(Note: Native processing disabled for this environment).`;
+        }
       } catch (imgErr: any) {
-        console.warn("[SERVER] Sharp image processing failed:", imgErr);
-        return { success: false, error: `Image processing error: ${imgErr.message}` };
+        console.warn("[SERVER] Shielded image processing failure:", imgErr);
+        text = `Image Context: ${file.name} (Metadata acquisition failed)`;
       }
     } else {
       return { success: false, error: "Unsupported format. Use PDF, DOCX, PNG, or JPG." };
