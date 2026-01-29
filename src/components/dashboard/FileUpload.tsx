@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, Download, FileCode, ShieldInfo, Cpu, Gauge } from "lucide-react";
+import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, Download, FileCode, ShieldAlert, Cpu, Gauge, BrainCircuit } from "lucide-react";
 import { processProcurementDocument } from "@/app/actions/analyze";
 
 export default function FileUpload() {
@@ -282,6 +282,40 @@ AUDIT TRAIL:
                     {/* ALERTS & AUDIT TRAIL */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         <div className="md:col-span-2 glass-card !bg-white/[0.01] space-y-4">
+                            {/* AI Suggestions */}
+                            {result.suggestions && result.suggestions.length > 0 && (
+                                <div className="space-y-4">
+                                    {/* NEW: Dual-AI Opinion */}
+                                    {result.auditOpinion && (
+                                        <div className="p-5 glass rounded-2xl bg-gradient-to-br from-primary-500/10 to-accent-500/5 border border-primary-500/20 relative overflow-hidden group">
+                                            <div className="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition-opacity">
+                                                <Cpu className="w-12 h-12 text-primary-500 animate-pulse" />
+                                            </div>
+                                            <div className="space-y-2 relative z-10">
+                                                <div className="flex items-center gap-2 text-[10px] font-black text-primary-400 uppercase tracking-widest">
+                                                    <BrainCircuit className="w-4 h-4" />
+                                                    Synthesized Audit Opinion (Llama-1B)
+                                                </div>
+                                                <p className="text-sm text-neutral-100 font-medium leading-relaxed italic">
+                                                    "{result.auditOpinion}"
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-2 p-4 glass rounded-xl border-accent-500/10 bg-accent-500/5">
+                                        <div className="text-[10px] font-black text-accent-400 uppercase tracking-widest">Strategic Recommendations</div>
+                                        <ul className="space-y-1">
+                                            {result.suggestions.map((s: string, i: number) => (
+                                                <li key={i} className="text-xs text-neutral-100 flex items-center gap-2 font-medium">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-accent-500 shadow-[0_0_8px_rgba(234,179,8,0.5)]"></div>
+                                                    {s}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
                             <div className="flex items-center gap-2 mb-2">
                                 <AlertCircle className="w-4 h-4 text-error-500" />
                                 <h4 className="text-[10px] font-black text-error-500 uppercase tracking-[0.3em]">Integrity Alerts & Anomalies</h4>

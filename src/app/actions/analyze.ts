@@ -147,7 +147,7 @@ export async function processProcurementDocument(formData: FormData) {
     let imageMetadata = null;
 
     // 1. Extract Content
-    const DEPLOY_ID = "2026-01-28_Q"; // Actionable Forensic Intelligence (PPDA Mapping)
+    const DEPLOY_ID = "2026-01-28_R"; // Dual-AI Intelligence (Llama-1B + BERT)
     console.log(`[SERVER] [${DEPLOY_ID}] Processing ${file.name}...`);
 
     const fileNameLower = file.name.toLowerCase();
