@@ -208,7 +208,7 @@ OPINION:`;
             });
 
             const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("GenAI Timeout")), 25000)
+                setTimeout(() => reject(new Error("GenAI Timeout")), 20000)
             );
 
             const response: any = await Promise.race([generationPromise, timeoutPromise]);
@@ -218,7 +218,7 @@ OPINION:`;
             opinion = rawText.replace(prompt, "").trim();
 
             // Fallback if empty
-            if (opinion.length < 10) throw new Error("Empty Llama output");
+            if (opinion.length < 10) throw new Error("Empty GenAI output");
 
         } catch (err) {
             console.warn("GenAI generation timed out or failed. Using template fallacy backup.", err);

@@ -2,6 +2,8 @@
 
 import { analyzeText } from "@/lib/analysis";
 
+export const maxDuration = 60; // Extend timeout for complex AI analysis (Ver AK)
+
 export async function processProcurementDocument(formData: FormData) {
   const file = formData.get("file") as File;
   const analysisType = (formData.get("analysisType") as 'procurement' | 'contract' | 'fraud' | 'audit') || 'procurement';
