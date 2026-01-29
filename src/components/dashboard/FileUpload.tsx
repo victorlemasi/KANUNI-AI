@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, Download, ShieldAlert, Cpu, Gauge, BrainCircuit } from "lucide-react";
-import { processProcurementDocument } from "@/app/actions/analyze";
 
 export default function FileUpload() {
     const [file, setFile] = useState<File | null>(null);
@@ -37,10 +36,16 @@ export default function FileUpload() {
         formData.append("analysisType", analysisType);
 
         try {
-            const result = await processProcurementDocument(formData);
+            // Ver AM: Switch to Route Handler for 60s maxDuration support
+            const response = await fetch('/api/analyze', {
+                method: 'POST',
+                body: formData,
+            });
 
-            if (!result.success) {
-                setError(result.error || "Server processing failed");
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                setError(result.error || "Analysis failed. The server might be busy.");
                 return;
             }
 
