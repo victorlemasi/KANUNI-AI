@@ -180,21 +180,18 @@ export async function generateAuditOpinion(findings: any[], riskScore: number, d
     let opinion = "";
 
     if (gen) {
-        const prompt = `<|system|>
-You are a strict government auditor (KANUNI AI). Summarize the risk in 1 authoritative sentence.
-<|user|>
-Context: ${docType} Audit. Score: ${riskScore}/100.
-Issues: ${issueText}.
-<|assistant|>
-Based on the forensic analysis,`;
+        // Simplified Prompt for Speed (No System Tags)
+        const prompt = `AUDIT CONTEXT: ${docType} Audit detected ${issueText}. Risk Score: ${riskScore}/100.
+TASK: Write 1 strict sentence summarizing the fraud risk.
+OPINION:`;
 
         // Race between Llama and a 25s Timeout
         try {
             const generationPromise = gen(prompt, {
-                max_new_tokens: 50,
-                temperature: 0.7,
-                top_k: 40,
-                do_sample: true
+                max_new_tokens: 45,
+                do_sample: false, // Greedy Decoding (Fastest)
+                temperature: 0.1, // Deterministic
+                repetition_penalty: 1.1
             });
 
             const timeoutPromise = new Promise((_, reject) =>
