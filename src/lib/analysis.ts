@@ -319,7 +319,7 @@ export async function analyzeDocument(text: string, mode: 'procurement' | 'contr
 
     // 2.5: Dispose of Classifier before GenAI starts (Manual Handover)
     console.log("[SERVER] Milestone: BERT Analysis complete. Handing over to GenAI...");
-    (global as any).classifier = null;
+    classifier = null;
 
     // 3. DUAL-AI: Synthesize Opinion
     analysis.auditOpinion = await generateAuditOpinion(analysis.findings, analysis.riskScore, mode);
