@@ -188,11 +188,38 @@ Issues: ${issueText}.
 <|assistant|>
 Based on the forensic analysis,`;
 
+        // Race between Llama and a 25s Timeout
         try {
-            const output = await gen(prompt, { max_new_tokens: 60, temperature: 0.1, do_sample: false });
-            opinion = "Based on the forensic analysis, " + output[0].generated_text.split("<|assistant|>")[1].trim().replace("Based on the forensic analysis,", "");
-        } catch (e) {
-            console.error("Llama generation failed", e);
+            const generationPromise = gen(prompt, {
+                max_new_tokens: 50,
+                temperature: 0.7,
+                top_k: 40,
+                do_sample: true
+            });
+
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Llama Timeout")), 25000)
+            );
+
+            const response: any = await Promise.race([generationPromise, timeoutPromise]);
+
+            // Extract synthesis
+            const rawText = response[0].generated_text;
+            opinion = rawText.replace(prompt, "").trim();
+
+            // Fallback if empty
+            if (opinion.length < 10) throw new Error("Empty Llama output");
+
+        } catch (err) {
+            console.warn("Llama generation timed out or failed. Using template fallacy backup.", err);
+            // Template Synthesis Fallback (Instant)
+            if (riskScore > 75) {
+                opinion = `CRITICAL AUDIT ALERT: The document contains ${criticalIssues.length} high-severity violations, specifically ${issueText}. Reference Z-Score anomalies indicate potential price inflation typical of bid-rigging.`;
+            } else if (riskScore > 40) {
+                opinion = `MODERATE RISK: Procedural irregularities detected in ${findings.length > 0 ? findings[0].text : 'documentation'}. While price variance is within standard deviation, compliance gaps require manual review.`;
+            } else {
+                opinion = `COMPLIANT: No material structural defects found. Metadata and price points indicate adherence to standard procurement protocols.`;
+            }
         }
     }
 
