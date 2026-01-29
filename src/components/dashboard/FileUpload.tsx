@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, Download, FileCode, ShieldAlert, Cpu, Gauge, BrainCircuit } from "lucide-react";
+import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, Download, ShieldAlert, Cpu, Gauge, BrainCircuit } from "lucide-react";
 import { processProcurementDocument } from "@/app/actions/analyze";
 
 export default function FileUpload() {
@@ -297,7 +297,7 @@ AUDIT TRAIL:
                                                     Synthesized Audit Opinion (Llama-1B)
                                                 </div>
                                                 <p className="text-sm text-neutral-100 font-medium leading-relaxed italic">
-                                                    "{result.auditOpinion}"
+                                                    &quot;{result.auditOpinion}&quot;
                                                 </p>
                                             </div>
                                         </div>

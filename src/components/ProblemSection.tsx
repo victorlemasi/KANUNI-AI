@@ -36,7 +36,7 @@ export default function ProblemSection() {
                     </h2>
                     <p className="text-xl text-neutral-300 max-w-3xl mx-auto">
                         Kenya's institutions face persistent compliance and governance challenges that result in
-                        inefficiencies, audit queries, and public trust gaps.
+                        It&apos;s tedious, error-prone, and leaves billions in leaked funds.
                     </p>
                 </div>
 
