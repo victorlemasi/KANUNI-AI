@@ -2,7 +2,7 @@ import { pipeline, env } from "@xenova/transformers";
 
 // We use dynamic imports to prevent Transformers.js from initializing during SSR/Build
 let classifier: any = null;
-let generator: any = null; // Lightweight Llama Model
+let generator: any = null; // Lightweight Generative Model (T5)
 let isLoading = false;
 let loadError: Error | null = null;
 
@@ -25,7 +25,7 @@ export async function getGenAI() {
         });
         return generator;
     } catch (e) {
-        console.warn("Llama Light failed to load (likely memory constraint). Falling back to template logic.", e);
+        console.warn("Micro-model failed to load (likely memory constraint). Falling back to template logic.", e);
         return null;
     }
 }

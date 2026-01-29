@@ -17,9 +17,12 @@ async function preDownload() {
 
     try {
         console.log("📥 Downloading mobilebert-uncased-mnli model...");
-        // This triggers the download and caches it in cacheDir
         await pipeline("zero-shot-classification", "Xenova/mobilebert-uncased-mnli");
-        console.log("✅ Model downloaded and cached successfully!");
+
+        console.log("📥 Downloading LaMini-Flan-T5-248M model...");
+        await pipeline("text2text-generation", "Xenova/LaMini-Flan-T5-248M");
+
+        console.log("✅ All models downloaded and cached successfully!");
     } catch (error) {
         console.error("❌ Failed to pre-download model:", error);
         process.exit(1);
