@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { History, FileText, ExternalLink, ShieldCheck, AlertCircle, Search, Download, Trash2, ArrowLeft } from "lucide-react";
+import { History, FileText, ExternalLink, ShieldCheck, AlertCircle, Search, Download, Trash2, ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function SavedReports() {
