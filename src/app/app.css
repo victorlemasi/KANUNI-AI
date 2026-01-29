@@ -67,7 +67,11 @@
   }
 
   .glass-button {
-    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] shadow-2xl px-8 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all active:scale-95 hover:shadow-[0_0_30px_rgba(255, 255, 255, 0.05)];
+    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] shadow-2xl px-8 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all active:scale-95;
+    
+    &:hover {
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.05);
+    }
   }
 
   .audit-gradient-text {
