@@ -294,7 +294,7 @@ AUDIT TRAIL:
                                             <div className="space-y-2 relative z-10">
                                                 <div className="flex items-center gap-2 text-[10px] font-black text-primary-400 uppercase tracking-widest">
                                                     <BrainCircuit className="w-4 h-4" />
-                                                    Synthesized Audit Opinion (Llama-1B)
+                                                    Synthesized Audit Opinion (GenAI)
                                                 </div>
                                                 <p className="text-sm text-neutral-100 font-medium leading-relaxed italic">
                                                     &quot;{result.auditOpinion}&quot;

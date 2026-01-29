@@ -169,7 +169,7 @@ export function analyzeVendorConcentration(text: string) {
     };
 }
 
-// NEW: Generative Audit Opinion (Llama Powered)
+// NEW: Generative Audit Opinion (GenAI Powered)
 export async function generateAuditOpinion(findings: any[], riskScore: number, docType: string) {
     const gen = await getGenAI();
 
@@ -185,7 +185,7 @@ export async function generateAuditOpinion(findings: any[], riskScore: number, d
 TASK: Write 1 strict sentence summarizing the fraud risk.
 OPINION:`;
 
-        // Race between Llama and a 25s Timeout
+        // Race between GenAI and a 25s Timeout
         try {
             const generationPromise = gen(prompt, {
                 max_new_tokens: 45,
@@ -195,7 +195,7 @@ OPINION:`;
             });
 
             const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("Llama Timeout")), 25000)
+                setTimeout(() => reject(new Error("GenAI Timeout")), 25000)
             );
 
             const response: any = await Promise.race([generationPromise, timeoutPromise]);
@@ -208,7 +208,7 @@ OPINION:`;
             if (opinion.length < 10) throw new Error("Empty Llama output");
 
         } catch (err) {
-            console.warn("Llama generation timed out or failed. Using template fallacy backup.", err);
+            console.warn("GenAI generation timed out or failed. Using template fallacy backup.", err);
             // Template Synthesis Fallback (Instant)
             if (riskScore > 75) {
                 opinion = `CRITICAL AUDIT ALERT: The document contains ${criticalIssues.length} high-severity violations, specifically ${issueText}. Reference Z-Score anomalies indicate potential price inflation typical of bid-rigging.`;
