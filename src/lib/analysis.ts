@@ -244,7 +244,7 @@ OPINION:`;
 }
 
 export async function analyzeDocument(text: string, mode: 'procurement' | 'contract' | 'fraud' | 'audit' = 'procurement') {
-    const classifier = await getClassifier();
+    const bertPipeline = await getClassifier();
     const truncatedText = text.substring(0, 2000);
 
     const analysis: any = {
@@ -268,7 +268,7 @@ export async function analyzeDocument(text: string, mode: 'procurement' | 'contr
     for (const area of areas) {
         console.log(`[SERVER] Analyzing Pillar: ${area}...`);
         try {
-            const result = await classifier(truncatedText, [area, 'compliant']);
+            const result = await bertPipeline(truncatedText, [area, 'compliant']);
             const score = result.scores[0];
             const info = PPDA_FRAMEWORK[area];
 
@@ -317,11 +317,9 @@ export async function analyzeDocument(text: string, mode: 'procurement' | 'contr
 
     analysis.topConcern = analysis.findings[0]?.text || "No major regulatory concerns identified.";
 
-    analysis.topConcern = analysis.findings[0]?.text || "No major regulatory concerns identified.";
-
     // 2.5: Dispose of Classifier before GenAI starts (Manual Handover)
     console.log("[SERVER] Milestone: BERT Analysis complete. Handing over to GenAI...");
-    classifier = null;
+    (global as any).classifier = null;
 
     // 3. DUAL-AI: Synthesize Opinion
     analysis.auditOpinion = await generateAuditOpinion(analysis.findings, analysis.riskScore, mode);
