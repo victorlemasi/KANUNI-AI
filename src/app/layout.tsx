@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
+import { Outfit, Inter } from "next/font/google";
 import "./globals.css";
 import ErrorBoundary from "@/components/ErrorBoundary";
+
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "KANUNI AI - Document Analysis",
@@ -14,7 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased bg-[#020617]">
+      <body className={`${outfit.variable} ${inter.variable} font-sans antialiased bg-[#020617]`}>
         <ErrorBoundary>
           {children}
         </ErrorBoundary>
