@@ -19,8 +19,8 @@ export async function getGenAI() {
     try {
         env.allowLocalModels = false;
         env.useBrowserCache = false;
-        // Xenova/TinyLlama-1.1B-Chat-v1.0 is a robust "Llama Light" compatible with this stack
-        generator = await pipeline("text-generation", "Xenova/TinyLlama-1.1B-Chat-v1.0", {
+        // LaMini-Flan-T5-248M is ~250MB, significantly safer for 512MB RAM instances
+        generator = await pipeline("text2text-generation", "Xenova/LaMini-Flan-T5-248M", {
             quantized: true
         });
         return generator;
