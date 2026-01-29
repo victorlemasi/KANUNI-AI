@@ -30,7 +30,7 @@ export async function getGenAI() {
     }
 }
 
-async function loadAI() {
+async function loadAI(): Promise<any> {
     if (isLoading) {
         await new Promise(resolve => setTimeout(resolve, 100));
         return classifier || loadAI();

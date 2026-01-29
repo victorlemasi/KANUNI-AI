@@ -73,7 +73,7 @@ export async function processProcurementDocument(formData: FormData) {
             const page = await proxy.getPage(i);
             const content = await page.getTextContent();
             text += content.items.map((it: any) => it.str || "").join(" ") + "\n";
-          } catch (e) { }
+          } catch { }
         }
         if (text.trim().length > 50) return text;
       }
