@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit, Inter } from "next/font/google";
-import "./globals.css";
+import "./app.css";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
