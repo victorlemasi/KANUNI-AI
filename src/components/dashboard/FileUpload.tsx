@@ -238,7 +238,7 @@ AUDIT TRAIL:
                         <div className="glass-card space-y-6">
                             <div className="flex items-center justify-between">
                                 <h4 className="text-xs font-black text-white uppercase tracking-widest">Platform Pillar Alignment</h4>
-                                <ShieldInfo className="w-4 h-4 text-primary-500" />
+                                <ShieldAlert className="w-4 h-4 text-primary-500" />
                             </div>
                             <div className="space-y-5">
                                 {[
