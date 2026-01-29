@@ -250,21 +250,26 @@ export async function analyzeDocument(text: string, mode: 'procurement' | 'contr
     };
 
     // 1. Regulatory Logic (PPDA Mapping)
+    console.log(`[SERVER] Starting sequential analysis of ${Object.keys(PPDA_FRAMEWORK).length} pillars...`);
     const areas = Object.keys(PPDA_FRAMEWORK);
-    const results = await Promise.all(areas.map(async area => {
-        const result = await classifier(truncatedText, [area, 'compliant']);
-        return { area, score: result.scores[0], info: PPDA_FRAMEWORK[area] };
-    }));
+    for (const area of areas) {
+        console.log(`[SERVER] Analyzing Pillar: ${area}...`);
+        try {
+            const result = await classifier(truncatedText, [area, 'compliant']);
+            const score = result.scores[0];
+            const info = PPDA_FRAMEWORK[area];
 
-    results.forEach(r => {
-        if (r.score > 0.55 && r.score < 0.8) { // Moderate non-compliance indicated by low "compliant" score
-            analysis.findings.push({
-                severity: r.info.severity,
-                text: `${r.info.section} Violation: ${r.info.rule}`,
-                label: r.area.toUpperCase()
-            });
+            if (score > 0.55 && score < 0.8) { // Moderate non-compliance indicated by low "compliant" score
+                analysis.findings.push({
+                    severity: info.severity,
+                    text: `${info.section} Violation: ${info.rule}`,
+                    label: area.toUpperCase()
+                });
+            }
+        } catch (err) {
+            console.error(`[SERVER] Pillar Analysis Error (${area}):`, err);
         }
-    });
+    }
 
     if (mode === 'procurement') {
         const vendor = analyzeVendorConcentration(text);
@@ -309,7 +314,7 @@ export async function analyzeDocument(text: string, mode: 'procurement' | 'contr
     };
 
     analysis.auditTrail = {
-        engine: "Dual-Stack (BERT-Q + Llama-1B)",
+        engine: "Dual-Stack (BERT-Q + GenAI-T5)",
         regulatoryContext: "PPDA Act 2021",
         confidence: 0.99, // Boosted by Dual Verify
         statistics: { method: 'Z-Score + Benford + NLP + LLM' }
