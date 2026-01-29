@@ -18,7 +18,7 @@ export async function getGenAI() {
     // Attempt to load generative model
     try {
         env.allowLocalModels = false;
-        env.useBrowserCache = true;
+        env.useBrowserCache = false;
         // Xenova/TinyLlama-1.1B-Chat-v1.0 is a robust "Llama Light" compatible with this stack
         generator = await pipeline("text-generation", "Xenova/TinyLlama-1.1B-Chat-v1.0", {
             quantized: true
@@ -39,7 +39,7 @@ async function loadAI(): Promise<any> {
     try {
         isLoading = true;
         env.allowLocalModels = false;
-        env.useBrowserCache = true;
+        env.useBrowserCache = false;
         env.cacheDir = "./.cache";
 
         // Primary BERT Forensic Engine
