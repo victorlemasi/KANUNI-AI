@@ -9,12 +9,25 @@ let loadError: Error | null = null;
 export async function getClassifier() {
     if (classifier) return classifier;
     if (loadError) throw new Error(`AI model failed to load: ${loadError.message}`);
-    // ... (Loading logic reuse/merged below)
+
+    // Clear generator to free space before loading classifier
+    if (generator) {
+        console.log("[SERVER] Disposing Generator to free space for Classifier...");
+        generator = null;
+    }
+
     return loadAI();
 }
 
 export async function getGenAI() {
     if (generator) return generator;
+
+    // Clear classifier to free space before loading generator
+    if (classifier) {
+        console.log("[SERVER] Disposing Classifier to free space for Generator...");
+        classifier = null;
+    }
+
     // Attempt to load generative model
     try {
         env.allowLocalModels = false;
@@ -304,8 +317,17 @@ export async function analyzeDocument(text: string, mode: 'procurement' | 'contr
 
     analysis.topConcern = analysis.findings[0]?.text || "No major regulatory concerns identified.";
 
+    analysis.topConcern = analysis.findings[0]?.text || "No major regulatory concerns identified.";
+
+    // 2.5: Dispose of Classifier before GenAI starts (Manual Handover)
+    console.log("[SERVER] Milestone: BERT Analysis complete. Handing over to GenAI...");
+    classifier = null;
+
     // 3. DUAL-AI: Synthesize Opinion
     analysis.auditOpinion = await generateAuditOpinion(analysis.findings, analysis.riskScore, mode);
+
+    // 3.5: Finalize & Dispose
+    generator = null;
 
     analysis.pillarAlignment = {
         decisionIntelligence: Math.max(0.1, 1 - (analysis.riskScore / 100)),
