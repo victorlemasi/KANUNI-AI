@@ -291,7 +291,7 @@ OPINION:`;
         }
     }
 
-    // Fallback or Template if Llama fails/is missing
+    // Fallback or Template if Generator fails/is missing
     if (!opinion) {
         if (riskScore > 75) opinion = `CRITICAL AUDIT FAILURE: Immediate forensic intervention required due to ${criticalIssues.length} severe violations including ${findings[0]?.text || 'regulatory breaches'}.`;
         else if (riskScore > 40) opinion = `HIGH RISK DETECTED: Procurement contains significant deviations from PPDA compliance, specifically ${findings[0]?.text || 'irregularities'}.`;

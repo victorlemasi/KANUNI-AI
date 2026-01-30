@@ -11,9 +11,12 @@ async function preDownload() {
     console.log("🚀 Starting AI model pre-download...");
     console.log(`📂 Cache directory: ${cacheDir}`);
 
-    if (!fs.existsSync(cacheDir)) {
-        fs.mkdirSync(cacheDir, { recursive: true });
+    // Aggressive Purge: Wipe existing cache to ensure only required quantized models are kept
+    console.log("🧹 Wiping legacy build cache...");
+    if (fs.existsSync(cacheDir)) {
+        fs.rmSync(cacheDir, { recursive: true, force: true });
     }
+    fs.mkdirSync(cacheDir, { recursive: true });
 
     try {
         console.log("📥 Downloading mobilebert-uncased-mnli (Quantized) model...");
