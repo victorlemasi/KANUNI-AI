@@ -36,7 +36,7 @@ async function disposeModel(modelType: 'classifier' | 'generator') {
 
     // Hint to V8 Garbage Collector (if available)
     if (global.gc) {
-        try { global.gc(); } catch (e) { }
+        try { global.gc(); } catch { }
     }
     await new Promise(resolve => setTimeout(resolve, 2000)); // Grace period for GC (increased for safety)
     logMemory(`After disposal of ${modelType}`);

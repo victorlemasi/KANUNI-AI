@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
         } finally {
             // Aggressive Memory Cleanup: Release buffer immediately
             buffer = null;
-            if (global.gc) { try { global.gc(); } catch (e) { } }
+            if (global.gc) { try { global.gc(); } catch { } }
         }
 
         if (!text || text.trim().length === 0) {
