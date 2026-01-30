@@ -1,66 +1,82 @@
 import { pipeline, env } from "@xenova/transformers";
 
 // We use dynamic imports to prevent Transformers.js from initializing during SSR/Build
+// Global references for singleton management
 let classifier: any = null;
-let generator: any = null; // Lightweight Generative Model (T5)
+let generator: any = null;
 let isLoading = false;
-let loadError: Error | null = null;
 
-export async function getClassifier() {
-    if (classifier) return classifier;
-    if (loadError) throw new Error(`AI model failed to load: ${loadError.message}`);
-
-    // Clear generator to free space before loading classifier
-    if (generator) {
-        console.log("[SERVER] Disposing Generator to free space for Classifier...");
+// Helper: Force disposal of a model
+async function disposeModel(modelType: 'classifier' | 'generator') {
+    if (modelType === 'classifier' && classifier) {
+        console.log("[SERVER] Disposing BERT Classifier to free memory...");
+        if (typeof classifier.dispose === 'function') {
+            await classifier.dispose();
+        }
+        classifier = null;
+    }
+    if (modelType === 'generator' && generator) {
+        console.log("[SERVER] Disposing T5 Generator to free memory...");
+        if (typeof generator.dispose === 'function') {
+            await generator.dispose();
+        }
         generator = null;
     }
 
-    return loadAI();
+    // Hint to V8 Garbage Collector (if available)
+    if (global.gc) {
+        try { global.gc(); } catch (e) { }
+    }
+    await new Promise(resolve => setTimeout(resolve, 500)); // Grace period for GC
+}
+
+export async function getClassifier() {
+    // strict exclusivity: ensure generator is gone
+    if (generator) await disposeModel('generator');
+
+    if (classifier) return classifier;
+
+    return loadAI('classifier');
 }
 
 export async function getGenAI() {
+    // strict exclusivity: ensure classifier is gone
+    if (classifier) await disposeModel('classifier');
+
     if (generator) return generator;
 
-    // Clear classifier to free space before loading generator
-    if (classifier) {
-        console.log("[SERVER] Disposing Classifier to free space for Generator...");
-        classifier = null;
-    }
-
-    // Attempt to load generative model
-    try {
-        env.allowLocalModels = false;
-        env.useBrowserCache = false;
-        // LaMini-Flan-T5-248M is ~250MB, significantly safer for 512MB RAM instances
-        generator = await pipeline("text2text-generation", "Xenova/LaMini-Flan-T5-248M", {
-            quantized: true
-        });
-        return generator;
-    } catch (e) {
-        console.warn("Micro-model failed to load (likely memory constraint). Falling back to template logic.", e);
-        return null;
-    }
+    return loadAI('generator');
 }
 
-async function loadAI(): Promise<any> {
+async function loadAI(type: 'classifier' | 'generator'): Promise<any> {
     if (isLoading) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        return classifier || loadAI();
+        await new Promise(resolve => setTimeout(resolve, 500));
+        if (type === 'classifier' && classifier) return classifier;
+        if (type === 'generator' && generator) return generator;
+        return loadAI(type);
     }
 
     try {
         isLoading = true;
         env.allowLocalModels = false;
         env.useBrowserCache = false;
-        env.cacheDir = "./.cache";
+        env.cacheDir = "./.cache"; // Unified cache
 
-        // Primary BERT Forensic Engine
-        classifier = await pipeline("zero-shot-classification", "Xenova/mobilebert-uncased-mnli");
-        return classifier;
+        if (type === 'classifier') {
+            console.log("[SERVER] Loading BERT Classifier...");
+            classifier = await pipeline("zero-shot-classification", "Xenova/mobilebert-uncased-mnli");
+            return classifier;
+        } else {
+            console.log("[SERVER] Loading T5 Generator...");
+            // LaMini-Flan-T5-77M is smaller than 248M (better for 512MB limit)
+            // switching to 77M if 248M is too heavy, but keeping 248M for now as requested unless it fails again
+            generator = await pipeline("text2text-generation", "Xenova/LaMini-Flan-T5-248M", {
+                quantized: true
+            });
+            return generator;
+        }
     } catch (error: any) {
-        loadError = error;
-        console.error("Failed to load AI model:", error);
+        console.error(`Failed to load ${type}:`, error);
         throw error;
     } finally {
         isLoading = false;

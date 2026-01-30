@@ -87,29 +87,35 @@ export async function POST(req: NextRequest) {
         const wordParser = getParser(mammothModule, 'extractRawText');
 
         const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
+        let buffer: Buffer | null = Buffer.from(bytes);
         let text = "";
         let imageMetadata = null;
 
         const fileNameLower = file.name.toLowerCase();
 
-        if (fileNameLower.endsWith(".pdf")) {
-            const raw = await parsePDF(pdfParser, buffer);
-            text = await nuclearExtract(raw);
-        } else if (fileNameLower.endsWith(".docx")) {
-            const result = await wordParser({ buffer });
-            text = result.value;
-        } else if (fileNameLower.match(/\.(png|jpg|jpeg|webp)$/)) {
-            let sharp;
-            try { sharp = require("sharp"); } catch { }
-            if (sharp) {
-                const image = sharp(buffer);
-                imageMetadata = await image.metadata();
-                text = `Image Metadata Analysis: ${file.name}`;
-            } else {
-                imageMetadata = { format: fileNameLower.split('.').pop() };
-                text = `Image Metadata (Simplified): ${file.name}`;
+        try {
+            if (fileNameLower.endsWith(".pdf")) {
+                const raw = await parsePDF(pdfParser, buffer);
+                text = await nuclearExtract(raw);
+            } else if (fileNameLower.endsWith(".docx")) {
+                const result = await wordParser({ buffer });
+                text = result.value;
+            } else if (fileNameLower.match(/\.(png|jpg|jpeg|webp)$/)) {
+                let sharp;
+                try { sharp = require("sharp"); } catch { }
+                if (sharp) {
+                    const image = sharp(buffer);
+                    imageMetadata = await image.metadata();
+                    text = `Image Metadata Analysis: ${file.name}`;
+                } else {
+                    imageMetadata = { format: fileNameLower.split('.').pop() };
+                    text = `Image Metadata (Simplified): ${file.name}`;
+                }
             }
+        } finally {
+            // Aggressive Memory Cleanup: Release buffer immediately
+            buffer = null;
+            if (global.gc) { try { global.gc(); } catch (e) { } }
         }
 
         if (!text || text.trim().length === 0) {
