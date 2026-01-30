@@ -99,6 +99,11 @@ async function loadAI(type: 'classifier' | 'generator'): Promise<any> {
 
         console.log(`[SERVER] Remote: ${env.allowRemoteModels}, Local: ${env.allowLocalModels}`);
 
+        // Final aggressive baseline sweep
+        if (classifier) await disposeModel('classifier');
+        if (generator) await disposeModel('generator');
+        if (global.gc) { try { global.gc(); } catch { } }
+
         if (type === 'classifier') {
             console.log("[SERVER] Loading BERT Classifier (Quantized)...");
             logMemory("Load Start: BERT");
