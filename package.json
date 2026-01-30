@@ -6,7 +6,7 @@
     "dev": "next dev",
     "prebuild": "node scripts/pre-download.mjs",
     "build": "next build && cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static",
-    "start": "node --expose-gc .next/standalone/server.js",
+    "start": "PORT=10000 HOSTNAME=0.0.0.0 node --expose-gc .next/standalone/server.js",
     "lint": "next lint"
   },
   "dependencies": {

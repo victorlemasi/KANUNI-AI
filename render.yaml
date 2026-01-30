@@ -3,7 +3,7 @@ services:
     name: kanuni-ai
     runtime: node
     buildCommand: rm -rf .cache && npm install && npm run build
-    startCommand: node --expose-gc .next/standalone/server.js
+    startCommand: PORT=10000 HOSTNAME=0.0.0.0 node --expose-gc .next/standalone/server.js
     envVars:
       - key: NODE_VERSION
         value: 20
@@ -15,6 +15,8 @@ services:
         value: 0.0.0.0
       - key: PORT
         value: 10000
+      - key: NODE_ENV
+        value: production
       - key: TRANSFORMERS_CACHE
         value: /opt/render/project/src/.cache
       - key: XENOVA_ENV
