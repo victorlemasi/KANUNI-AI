@@ -50,7 +50,7 @@ export async function getClassifier() {
     if (classifier) return classifier;
 
     // Aggressive pre-load cleanup
-    if (global.gc) { try { global.gc(); } catch (e) { } }
+    if (global.gc) { try { global.gc(); } catch { } }
 
     return loadAI('classifier');
 }
@@ -63,7 +63,7 @@ export async function getGenAI() {
     if (generator) return generator;
 
     // Aggressive pre-load cleanup
-    if (global.gc) { try { global.gc(); } catch (e) { } }
+    if (global.gc) { try { global.gc(); } catch { } }
 
     return loadAI('generator');
 }

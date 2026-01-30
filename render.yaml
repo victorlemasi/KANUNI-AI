@@ -3,7 +3,7 @@ services:
     name: kanuni-ai
     runtime: node
     buildCommand: rm -rf .cache && npm install && npm run build
-    startCommand: PORT=10000 HOSTNAME=0.0.0.0 node --expose-gc .next/standalone/server.js
+    startCommand: node --expose-gc scripts/run-server.js
     envVars:
       - key: NODE_VERSION
         value: 20
