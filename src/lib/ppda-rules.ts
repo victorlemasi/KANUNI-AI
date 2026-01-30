@@ -16,13 +16,23 @@ export interface PPDAFinding {
 }
 
 // PPDA Act Section Definitions with Compliance Rules
-const PPDA_SECTIONS = {
+interface PPDASection {
+    number: string;
+    title: string;
+    keywords: string[];
+    severity: 'critical' | 'high' | 'medium' | 'low';
+    check: (text: string) => boolean;
+    violation: string;
+    recommendation: string;
+}
+
+const PPDA_SECTIONS: Record<string, PPDASection> = {
     // PART VI - GENERAL PROCUREMENT PRINCIPLES
     section53: {
         number: 'Section 53',
         title: 'Procurement and Asset Disposal Planning',
         keywords: ['procurement plan', 'annual plan', 'budget', 'planning'],
-        required: true,
+        severity: 'high',
         check: (text: string): boolean => {
             const hasProc = /procurement\s+plan/i.test(text);
             const hasBudget = /budget/i.test(text);
@@ -36,6 +46,7 @@ const PPDA_SECTIONS = {
         number: 'Section 54',
         title: 'Procurement Pricing and Requirement Not to Split Contracts',
         keywords: ['split', 'contract splitting', 'market price', 'inflated'],
+        severity: 'high',
         check: (text: string): boolean => {
             // Check for suspicious contract splitting patterns
             const splitPattern = /split|divid(e|ing)\s+(contract|procurement)/i;
@@ -64,6 +75,7 @@ const PPDA_SECTIONS = {
         number: 'Section 61',
         title: 'Tender Security',
         keywords: ['tender security', 'bid bond', 'guarantee', '2%', 'two percent'],
+        severity: 'high',
         check: (text: string): boolean => {
             const hasSecurity = /tender\s+security|bid\s+bond/i.test(text);
             // Extract percentages
@@ -96,6 +108,7 @@ const PPDA_SECTIONS = {
         number: 'Section 78',
         title: 'Opening of Tenders',
         keywords: ['tender opening', 'opening committee', 'immediately', 'deadline', 'public'],
+        severity: 'high',
         check: (text: string): boolean => {
             const hasOpening = /tender\s+opening|opening\s+(of\s+)?(tender|bid)/i.test(text);
             const hasImmediate = /immediate(ly)?|forthwith/i.test(text);
@@ -114,6 +127,7 @@ const PPDA_SECTIONS = {
         number: 'Section 80',
         title: 'Evaluation of Tenders',
         keywords: ['evaluation', 'criteria', 'objective', 'quantifiable', 'price', 'quality'],
+        severity: 'high',
         check: (text: string): boolean => {
             const hasEval = /evaluat(ion|e)/i.test(text);
             const hasCriteria = /criteria|criterion/i.test(text);
@@ -131,6 +145,7 @@ const PPDA_SECTIONS = {
         number: 'Section 86',
         title: 'Successful Tender',
         keywords: ['lowest price', 'highest score', 'total cost', 'award'],
+        severity: 'high',
         check: (text: string): boolean => {
             const hasAward = /award|successful/i.test(text);
             const hasValidCriteria = /(lowest\s+(evaluated\s+)?price|highest\s+(technical\s+)?score|lowest\s+total\s+cost)/i.test(text);
@@ -148,6 +163,7 @@ const PPDA_SECTIONS = {
         number: 'Section 91',
         title: 'Choice of Procurement Procedure',
         keywords: ['open tender', 'competitive', 'restricted', 'direct procurement'],
+        severity: 'high',
         check: (text: string): boolean => {
             const hasRestricted = /restricted\s+tender/i.test(text);
             const hasDirect = /direct\s+procurement/i.test(text);
@@ -180,6 +196,7 @@ const PPDA_SECTIONS = {
         number: 'Section 135',
         title: 'Creation of Procurement Contracts',
         keywords: ['written contract', 'signed', 'contract document'],
+        severity: 'high',
         check: (text: string): boolean => {
             const hasContract = /contract/i.test(text);
             const hasWritten = /written|sign(ed)?|document/i.test(text);
@@ -197,10 +214,10 @@ const PPDA_SECTIONS = {
         number: 'Section 142',
         title: 'Performance Security',
         keywords: ['performance security', 'performance bond', 'guarantee'],
+        severity: 'medium',
         check: (text: string): boolean => {
-            const hasPerformance = /performance\s+(security|bond|guarantee)/i.test(text);
-            // If mentioned, it should have proper documentation
-            return true; // Presence check only
+            // Presence check only
+            return true;
         },
         violation: 'Performance security requirements not clearly specified',
         recommendation: 'Specify performance security requirements as per Section 142'
@@ -210,6 +227,7 @@ const PPDA_SECTIONS = {
         number: 'Section 155',
         title: 'Preferences and Reservations',
         keywords: ['preference', 'reservation', 'women', 'youth', 'disability', '30%', 'thirty percent'],
+        severity: 'medium',
         check: (text: string): boolean => {
             const hasPreference = /preference|reserv(e|ation)/i.test(text);
             const hasGroups = /(women|youth|disabilit)/i.test(text);
@@ -337,16 +355,16 @@ function analyzeTimelines(text: string): PPDAFinding[] {
 }
 
 // Main PPDA Compliance Check Function
-export async function checkPPDACompliance(text: string, mode: string): Promise<PPDAFinding[]> {
+export async function checkPPDACompliance(text: string): Promise<PPDAFinding[]> {
     const findings: PPDAFinding[] = [];
 
     // Run all section checks
-    for (const [key, section] of Object.entries(PPDA_SECTIONS)) {
+    for (const section of Object.values(PPDA_SECTIONS)) {
         const isCompliant = section.check(text);
 
         if (!isCompliant) {
             findings.push({
-                severity: section.severity || 'high',
+                severity: section.severity,
                 text: section.violation,
                 label: section.title.toUpperCase(),
                 confidence: '95%',

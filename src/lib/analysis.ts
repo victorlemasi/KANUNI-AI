@@ -1,7 +1,7 @@
 import { pipeline, env } from "@xenova/transformers";
 import path from "path";
 import fs from "fs";
-import { checkPPDACompliance, type PPDAFinding } from "./ppda-rules";
+import { checkPPDACompliance } from "./ppda-rules";
 
 // We use dynamic imports to prevent Transformers.js from initializing during SSR/Build
 // Global references for singleton management
