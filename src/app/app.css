@@ -20,6 +20,12 @@
 
   --color-neutral-400: hsl(215, 16%, 47%);
   --color-neutral-500: hsl(215, 16%, 35%);
+  --color-neutral-600: hsl(215, 16%, 25%);
+  --color-neutral-700: hsl(215, 16%, 20%);
+  --color-neutral-800: hsl(215, 16%, 15%);
+  --color-neutral-850: hsl(215, 16%, 12%);
+  --color-neutral-900: hsl(215, 16%, 10%);
+  --color-neutral-950: hsl(215, 16%, 6%);
 
   --font-family-sans: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
 }
@@ -59,18 +65,23 @@
 
 @layer components {
   .glass {
-    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] shadow-2xl;
+    @apply bg-neutral-900 border border-neutral-700 shadow-2xl;
+  }
+
+  .glass-dark {
+    @apply bg-neutral-950 border border-neutral-800 shadow-2xl;
   }
 
   .glass-card {
-    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] shadow-2xl rounded-[2rem] p-8 transition-all duration-500 hover:border-white/[0.15] hover:bg-white/[0.05] hover:scale-[1.01];
+    @apply bg-neutral-900 border border-neutral-700 shadow-2xl rounded-[2rem] p-8 transition-all duration-500 hover:border-neutral-600 hover:bg-neutral-850 hover:scale-[1.01];
   }
 
   .glass-button {
-    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] shadow-2xl px-8 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all active:scale-95;
+    @apply bg-neutral-900 border border-neutral-700 shadow-2xl px-8 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all active:scale-95;
     
     &:hover {
-      box-shadow: 0 0 30px rgba(255, 255, 255, 0.05);
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+      @apply bg-neutral-800 border-neutral-600;
     }
   }
 
