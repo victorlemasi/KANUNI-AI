@@ -1,9 +1,17 @@
-import { pipeline, env } from "@xenova/transformers";
 import path from "path";
 import fs from "fs";
 import { checkPPDACompliance } from "./ppda-rules";
 
-// We use dynamic imports to prevent Transformers.js from initializing during SSR/Build
+// Dynamic import for transformers to prevent class constructor errors
+let transformersModule: any = null;
+
+async function getTransformers() {
+    if (!transformersModule) {
+        transformersModule = await import("@xenova/transformers");
+    }
+    return transformersModule;
+}
+
 // Global references for singleton management
 let classifier: any = null;
 let generator: any = null;
@@ -80,6 +88,10 @@ async function loadAI(type: 'classifier' | 'generator'): Promise<any> {
     try {
         isLoading = true;
         console.log(`[SERVER] Runtime Environment: HOST=${process.env.HOSTNAME}, PORT=${process.env.PORT}`);
+
+        // Get transformers module dynamically
+        const { env, pipeline } = await getTransformers();
+
         env.allowRemoteModels = false;
         env.allowLocalModels = true;
         env.useBrowserCache = false;
