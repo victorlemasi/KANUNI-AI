@@ -2,14 +2,10 @@ import path from "path";
 import fs from "fs";
 import { checkPPDACompliance } from "./ppda-rules";
 
-// Dynamic import for transformers to prevent class constructor errors
-let transformersModule: any = null;
-
-async function getTransformers() {
-    if (!transformersModule) {
-        transformersModule = await import("@xenova/transformers");
-    }
-    return transformersModule;
+// Use require for transformers to prevent class constructor errors in standalone builds
+function getTransformers() {
+    // Use require instead of dynamic import for better compatibility
+    return require("@xenova/transformers");
 }
 
 // Global references for singleton management
