@@ -78,6 +78,7 @@ async function loadAI(type: 'classifier' | 'generator'): Promise<any> {
 
     try {
         isLoading = true;
+        console.log(`[SERVER] Runtime Environment: HOST=${process.env.HOSTNAME}, PORT=${process.env.PORT}`);
         env.allowRemoteModels = false;
         env.allowLocalModels = true;
         env.useBrowserCache = false;

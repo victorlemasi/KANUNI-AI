@@ -3,14 +3,16 @@ services:
     name: kanuni-ai
     runtime: node
     buildCommand: npm install && npm run build
-    startCommand: node --expose-gc .next/standalone/server.js
+    startCommand: HOSTNAME=0.0.0.0 node --expose-gc .next/standalone/server.js
     envVars:
       - key: NODE_VERSION
         value: 20
       - key: NEXT_TELEMETRY_DISABLED
         value: 1
       - key: NODE_OPTIONS
-        value: --max-old-space-size=320
+        value: --max-old-space-size=300
+      - key: HOSTNAME
+        value: 0.0.0.0
       - key: TRANSFORMERS_CACHE
         value: /opt/render/project/src/.cache
       - key: XENOVA_ENV
