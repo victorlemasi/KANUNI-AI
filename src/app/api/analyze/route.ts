@@ -72,11 +72,22 @@ export async function POST(req: NextRequest) {
             return "";
         };
 
-        const parsePDF = async (pdfParser: any, buffer: Buffer) => {
+        const parsePDF = async (parser: any, dataBuffer: Buffer) => {
             try {
-                const result = await pdfParser(buffer);
+                const callTarget = parser.parse || parser.pdf || parser;
+                let result;
+                try {
+                    // Standard call
+                    result = await callTarget(dataBuffer);
+                } catch (err: any) {
+                    if (err.message?.includes("new")) {
+                        console.log("[API] Using constructor-call for PDF...");
+                        result = new parser(dataBuffer);
+                    } else throw err;
+                }
                 return result;
             } catch (err: any) {
+                console.error("[API] PDF Parsing Failed:", err);
                 throw err;
             }
         };

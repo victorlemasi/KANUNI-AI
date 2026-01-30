@@ -215,7 +215,7 @@ const PPDA_SECTIONS: Record<string, PPDASection> = {
         title: 'Performance Security',
         keywords: ['performance security', 'performance bond', 'guarantee'],
         severity: 'medium',
-        check: (_text: string): boolean => {
+        check: (_: string): boolean => {
             // Presence check only
             return true;
         },
@@ -355,7 +355,7 @@ function analyzeTimelines(text: string): PPDAFinding[] {
 }
 
 // Main PPDA Compliance Check Function
-export async function checkPPDACompliance(text: string, mode: 'procurement' | 'contract' | 'fraud' | 'audit' = 'procurement'): Promise<any[]> {
+export async function checkPPDACompliance(text: string, _mode: 'procurement' | 'contract' | 'fraud' | 'audit' = 'procurement'): Promise<any[]> {
     const findings: PPDAFinding[] = [];
 
     // Early exit for very small documents (likely not procurement docs)
