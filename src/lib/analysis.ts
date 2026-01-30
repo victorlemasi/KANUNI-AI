@@ -438,11 +438,15 @@ export async function analyzeDocument(text: string, mode: 'procurement' | 'contr
         (analysis.findings.filter((f: any) => f.severity === 'low').length * 2);
     analysis.riskScore = Math.min(100, riskPoints);
 
-    // 3. DUAL-AI: Synthesize Opinion with Rule-Based Context
-    analysis.auditOpinion = await generateAuditOpinion(analysis.findings, analysis.riskScore, mode);
+    // 3. MEMORY-SAFE: Skip T5 synthesis to stay under 512MB limit
+    console.log("[SERVER] Skipping T5 synthesis to prevent OOM");
 
-    // 3.5: Finalize & Dispose
-    await disposeModel('generator');
+    // Generate static audit opinion based on risk score
+    const riskLevel = analysis.riskScore > 70 ? 'HIGH' : analysis.riskScore > 40 ? 'MODERATE' : 'LOW';
+    analysis.auditOpinion = `Risk Level: ${riskLevel}. ${analysis.findings.length} compliance issues detected across ${analysis.findings.filter((f: any) => f.severity === 'critical').length} critical areas. Review recommended for PPDA Act 2021 compliance.`;
+
+    // No T5 model to dispose
+    console.log("[SERVER] Analysis complete without T5 synthesis");
 
     analysis.pillarAlignment = {
         decisionIntelligence: Math.max(0.1, 1 - (analysis.riskScore / 100)),
