@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Upload, FileText, Loader2, CheckCircle2, AlertCircle, Download, ShieldAlert, Cpu, Gauge, BrainCircuit } from "lucide-react";
 
 export default function FileUpload() {
@@ -9,6 +9,47 @@ export default function FileUpload() {
     const [isUploading, setIsUploading] = useState(false);
     const [result, setResult] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
+    const [worker, setWorker] = useState<Worker | null>(null);
+    const [modelStatus, setModelStatus] = useState<string>('');
+    const [progress, setProgress] = useState<number>(0);
+
+    // Initialize Worker
+    const workerRef = useRef<Worker | null>(null);
+
+    useEffect(() => {
+        if (!workerRef.current) {
+            const w = new Worker('/worker.js', { type: 'module' });
+            w.addEventListener('message', (e) => {
+                const { status, message, output, file, progress: p } = e.data;
+                switch (status) {
+                    case 'initiate':
+                        setModelStatus(message);
+                        break;
+                    case 'progress':
+                        if (p) setProgress(Math.round(p));
+                        break;
+                    case 'analyzing':
+                        setModelStatus(message);
+                        break;
+                    case 'complete':
+                        // Merge synthesis into result
+                        setResult((prev: any) => ({
+                            ...prev,
+                            auditOpinion: output,
+                            // Enhance suggestions with AI output if needed
+                        }));
+                        setModelStatus('');
+                        setIsUploading(false);
+                        break;
+                }
+            });
+            workerRef.current = w;
+            setWorker(w);
+        }
+        return () => {
+            // cleanup if needed, but we usually want to keep model loaded
+        };
+    }, []);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -42,62 +83,53 @@ export default function FileUpload() {
             while (attempts <= maxRetries) {
                 attempts++;
                 try {
-                    // Ver AM: Switch to Route Handler for 60s maxDuration support
+                    // Ver AM: Server does extraction + Rule Checks only
                     const response = await fetch('/api/analyze', {
                         method: 'POST',
                         body: formData,
                     });
 
-                    // Check for JSON content type to avoid "Unexpected end of JSON input"
                     const contentType = response.headers.get("content-type");
                     if (contentType && contentType.includes("application/json")) {
                         const result = await response.json();
+                        if (!result.success) throw new Error(result.error);
 
-                        if (!response.ok || !result.success) {
-                            throw new Error(result.error || "Analysis failed. The server might be busy.");
+                        // 1. Show Server Results Immediatey (Rule Based)
+                        setResult(result.data); // This has Findings + Risk Score
+
+                        // 2. Trigger Client-Side AI (Synthesis)
+                        if (workerRef.current && result.data.text) {
+                            setModelStatus("Loading Meta BART Model (85MB)...");
+                            workerRef.current.postMessage({
+                                type: 'analyze',
+                                text: result.data.text
+                            });
+                            // Don't set isUploading to false yet, wait for worker
+                        } else {
+                            setIsUploading(false);
                         }
 
-                        const data = result.data;
-                        setResult(data);
-
-                        // Persist for "Saved Reports"
+                        // Persist basic report
                         if (typeof window !== 'undefined') {
                             const saved = JSON.parse(localStorage.getItem('kanuni_reports') || '[]');
-                            localStorage.setItem('kanuni_reports', JSON.stringify([data, ...saved].slice(0, 20)));
+                            localStorage.setItem('kanuni_reports', JSON.stringify([result.data, ...saved].slice(0, 20)));
                         }
-                        return; // Success, exit function
+                        return;
                     } else {
-                        // Handle non-JSON responses (usually 504 Gateway Timeout or 500 Server Error HTML)
-                        if (response.status === 503 || response.status === 504) {
-                            throw new Error(`Server temporarily unavailable (${response.status})`);
-                        }
-                        const text = await response.text();
-                        throw new Error(`Protocol Error: Server returned ${response.status} (${text.substring(0, 30)}...)`);
+                        throw new Error(`Server Error: ${response.status}`);
                     }
                 } catch (err: any) {
                     console.warn(`[Upload] Attempt ${attempts} failed:`, err);
-
-                    // Logic to decide if we should retry
-                    const isRetryable =
-                        err.message.includes("unavailable") ||
-                        err.message.includes("fetch") ||
-                        err.message.includes("Protocol Error");
-
-                    if (attempts <= maxRetries && isRetryable) {
-                        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
+                    if (attempts <= maxRetries) {
+                        await new Promise(resolve => setTimeout(resolve, 2000));
                         continue;
                     }
-                    throw err; // Exhausted retries or fatal error
+                    throw err;
                 }
             }
         } catch (err: any) {
-            console.error("Analysis final error:", err);
-            let msg = err.message || "Failed to analyze document";
-            if (msg.includes("JSON") || msg.includes("token")) {
-                msg = "Protocol Interruption: The server response was invalid. Please try again.";
-            }
-            setError(msg);
-        } finally {
+            console.error(err);
+            setError(err.message || "Analysis failed");
             setIsUploading(false);
         }
     };
@@ -219,7 +251,10 @@ AUDIT TRAIL:
                         </div>
                         <div className="text-center space-y-2">
                             <h4 className="text-sm font-black text-white uppercase tracking-[0.5em] animate-pulse">Running {analysisType} Diagnostics</h4>
-                            <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">Applying BERT classification & PPDA legislative mapping...</p>
+                            <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">
+                                {modelStatus || "Applying BERT classification & PPDA legislative mapping..."}
+                                {progress > 0 && ` (${progress}%)`}
+                            </p>
                         </div>
                         <div className="w-full max-w-xs h-1 bg-white/5 rounded-full overflow-hidden">
                             <div className="h-full bg-primary-500 animate-[shimmer_2s_infinite]" style={{ width: '40%' }} />

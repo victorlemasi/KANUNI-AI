@@ -1,147 +1,5 @@
-import path from "path";
-import fs from "fs";
+
 import { checkPPDACompliance } from "./ppda-rules";
-
-// Dynamic import for transformers (ESM package requirement)
-let transformersModule: any = null;
-
-async function getTransformers() {
-    if (!transformersModule) {
-        transformersModule = await import("@xenova/transformers");
-    }
-    return transformersModule;
-}
-
-// Global references for singleton management
-let classifier: any = null;
-let generator: any = null;
-let isLoading = false;
-
-// Helper: Log current memory usage
-function logMemory(label: string) {
-    const memory = process.memoryUsage();
-    const used = memory.heapUsed / 1024 / 1024;
-    const rss = memory.rss / 1024 / 1024;
-    console.log(`[MEMORY] ${label}: Heap=${Math.round(used)}MB, RSS=${Math.round(rss)}MB`);
-}
-
-// Helper: Force disposal of a model
-async function disposeModel(modelType: 'classifier' | 'generator') {
-    logMemory(`Before disposal of ${modelType}`);
-    if (modelType === 'classifier' && classifier) {
-        console.log("[SERVER] Disposing BERT Classifier to free memory...");
-        if (typeof classifier.dispose === 'function') {
-            await classifier.dispose();
-        }
-        classifier = null;
-    }
-    if (modelType === 'generator' && generator) {
-        console.log("[SERVER] Disposing T5 Generator to free memory...");
-        if (typeof generator.dispose === 'function') {
-            await generator.dispose();
-        }
-        generator = null;
-    }
-
-    // Hint to V8 Garbage Collector (if available)
-    if (global.gc) {
-        try { global.gc(); } catch { }
-    }
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Grace period for GC (increased for safety)
-    logMemory(`After disposal of ${modelType}`);
-}
-
-export async function getClassifier() {
-    logMemory("Entering getClassifier");
-    // strict exclusivity: ensure generator is gone
-    if (generator) await disposeModel('generator');
-
-    if (classifier) return classifier;
-
-    // Aggressive pre-load cleanup
-    if (global.gc) { try { global.gc(); } catch { } }
-
-    return loadAI('classifier');
-}
-
-export async function getGenAI() {
-    logMemory("Entering getGenAI");
-    // strict exclusivity: ensure classifier is gone
-    if (classifier) await disposeModel('classifier');
-
-    if (generator) return generator;
-
-    // Aggressive pre-load cleanup
-    if (global.gc) { try { global.gc(); } catch { } }
-
-    return loadAI('generator');
-}
-
-async function loadAI(type: 'classifier' | 'generator'): Promise<any> {
-    if (isLoading) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        if (type === 'classifier' && classifier) return classifier;
-        if (type === 'generator' && generator) return generator;
-        return loadAI(type);
-    }
-
-    try {
-        isLoading = true;
-        console.log(`[SERVER] Runtime Environment: HOST=${process.env.HOSTNAME}, PORT=${process.env.PORT}`);
-
-        // Get transformers module (async dynamic import for ESM)
-        const { env, pipeline } = await getTransformers();
-
-        env.allowRemoteModels = false;
-        env.allowLocalModels = true;
-        env.useBrowserCache = false;
-        const cacheDir = process.env.TRANSFORMERS_CACHE || path.join(process.cwd(), ".cache");
-        env.cacheDir = cacheDir;
-
-        console.log(`[SERVER] Cache Dir: ${cacheDir}`);
-        try {
-            if (fs.existsSync(cacheDir)) {
-                const files = fs.readdirSync(cacheDir);
-                console.log(`[SERVER] Cache Contents (${files.length} items):`, files.slice(0, 5));
-            } else {
-                console.warn(`[SERVER] Cache directory NOT FOUND at ${cacheDir}`);
-            }
-        } catch (e) {
-            console.error("[SERVER] Failed to read cache dir:", e);
-        }
-
-        console.log(`[SERVER] Remote: ${env.allowRemoteModels}, Local: ${env.allowLocalModels}`);
-
-        // Final aggressive baseline sweep
-        if (classifier) await disposeModel('classifier');
-        if (generator) await disposeModel('generator');
-        if (global.gc) { try { global.gc(); } catch { } }
-
-        if (type === 'classifier') {
-            console.log("[SERVER] Loading BERT Classifier (Quantized)...");
-            logMemory("Load Start: BERT");
-            classifier = await pipeline("zero-shot-classification", "Xenova/mobilebert-uncased-mnli", {
-                quantized: true
-            });
-            logMemory("Load End: BERT");
-            return classifier;
-        } else {
-            console.log("[SERVER] Loading T5 Generator (77M)...");
-            logMemory("Load Start: T5");
-            // LaMini-Flan-T5-77M is significantly smaller (~80MB) than 248M, preventing OOM
-            generator = await pipeline("text2text-generation", "Xenova/LaMini-Flan-T5-77M", {
-                quantized: true
-            });
-            logMemory("Load End: T5");
-            return generator;
-        }
-    } catch (error: any) {
-        console.error(`Failed to load ${type}:`, error);
-        throw error;
-    } finally {
-        isLoading = false;
-    }
-}
 
 // PPDA Act Regulatory Framework Mapping
 const PPDA_FRAMEWORK: Record<string, { section: string, rule: string, severity: 'high' | 'critical' }> = {
@@ -206,262 +64,62 @@ export function extractEntities(text: string) {
     };
 }
 
-// High-risk keyword scanner
-export function scanHighRiskKeywords(text: string) {
-    const highRiskTerms = [
-        'facilitation payment', 'expedite', 'bearer cash', 'gift',
-        'bribe', 'kickback', 'under the table', 'off the books',
-        'consulting fee', 'commission'
-    ];
+// Main Analysis Function (Server-Side: Text Extraction + Rules Only)
+export async function analyzeDocument(file: File, text: string, mode: 'procurement' | 'contract' | 'fraud' | 'audit' = 'procurement') {
 
-    return highRiskTerms
-        .filter(term => text.toLowerCase().includes(term))
-        .map(term => ({
-            keyword: term,
-            severity: ['bribe', 'kickback', 'bearer cash'].includes(term) ? 'critical' : 'high',
-            context: text.substring(Math.max(0, text.toLowerCase().indexOf(term.toLowerCase()) - 50), Math.min(text.length, text.toLowerCase().indexOf(term.toLowerCase()) + term.length + 50))
-        }));
-}
+    // -------------------------------------------------------------------------
+    // PHASE 2: HYBRID ANALYSIS (Regex + Client-Side Prep)
+    // -------------------------------------------------------------------------
 
-// Vendor concentration & Behavior
-export function analyzeVendorConcentration(text: string) {
-    const vendorPattern = /(?:vendor|supplier|contractor)[\s:]+([A-Z][A-Za-z\s&]+(?:Ltd|Inc|LLC|Corp)?)/gi;
-    const vendors: string[] = [];
-    let match;
+    // 1. Run Rule-Based Checks (Zero RAM cost)
+    console.log("[SERVER] Running PPDA Rule Engine...");
+    const ruleFindings = await checkPPDACompliance(text, mode);
 
-    while ((match = vendorPattern.exec(text)) !== null) {
-        vendors.push(match[1].trim());
-    }
+    // 2. Structure Findings
+    const findings = ruleFindings.map((f: any) => ({
+        ...f,
+        source: 'Rule-Based'
+    }));
 
-    const vendorCounts = vendors.reduce((acc: any, v) => {
-        acc[v] = (acc[v] || 0) + 1;
-        return acc;
-    }, {});
+    // Calculate Rule-Based Risk Score
+    // (Start with a baseline, if rules find critical violations, score goes up)
+    let riskScore = 0;
+    const criticals = findings.filter((f: any) => f.severity === 'critical').length;
+    const highs = findings.filter((f: any) => f.severity === 'high').length;
+    const mediums = findings.filter((f: any) => f.severity === 'medium').length;
 
-    const sortedVendors = Object.entries(vendorCounts)
-        .sort(([, a]: any, [, b]: any) => b - a)
-        .slice(0, 5);
+    riskScore = (criticals * 25) + (highs * 10) + (mediums * 5);
+    riskScore = Math.min(100, Math.max(10, riskScore)); // Min 10 to show 'Low Risk' not zero
 
-    const topVendorConcentration = sortedVendors.length > 0
-        ? (sortedVendors[0][1] as number) / vendors.length
-        : 0;
-
-    const isSlicingDetected = vendors.length > 5 && topVendorConcentration > 0.6;
+    // 3. Prepare Lightweight Response (No Server AI)
+    // We send back the text so the Client Worker can run the Neural Net
+    const pillarAlignment = {
+        decisionIntelligence: Math.max(0.2, 1 - (riskScore / 100)),
+        complianceAutomation: 0.8, // High because we used Regex
+        hitlGovernance: 0.5
+    };
 
     return {
-        totalVendors: new Set(vendors).size,
-        totalMentions: vendors.length,
-        topVendors: sortedVendors,
-        concentrationRisk: topVendorConcentration > 0.4,
-        concentrationRatio: topVendorConcentration,
-        behavioralAlerts: isSlicingDetected ? ['Potential contract slicing detected (excessive vendor mentions)'] : []
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        text: text, // Critical: Client needs this for BART
+        findings: findings,
+        riskScore: Math.round(riskScore),
+        riskLevel: riskScore > 70 ? 'CRITICAL' : riskScore > 40 ? 'MODERATE' : 'LOW',
+        pillarAlignment: pillarAlignment,
+        topConcern: findings.find((f: any) => f.severity === 'critical')?.label || findings[0]?.label || "No Critical Violations",
+        suggestions: findings.map((f: any) => f.recommendation || f.text).slice(0, 5),
+        auditOpinion: null, // Will be filled by Client Worker
+        auditTrail: {
+            step: 'Analysis Complete',
+            status: 'success',
+            model: 'PPDA-Regex-Engine + Meta-BART (Client)',
+            regulatoryContext: 'PPDA Act 2015 (Kenya)',
+            confidence: 0.95,
+            engine: 'HYBRID-EDGE'
+        },
+        alerts: findings.filter((f: any) => f.severity === 'critical').map((f: any) => f.label),
+        timestamp: new Date().toISOString()
     };
 }
-
-// NEW: Generative Audit Opinion (GenAI Powered)
-export async function generateAuditOpinion(findings: any[], riskScore: number, docType: string) {
-    const gen = await getGenAI();
-
-    // Construct Prompt
-    const criticalIssues = findings.filter(f => f.severity === 'critical' || f.severity === 'high').map(f => f.text);
-    const issueText = criticalIssues.length > 0 ? criticalIssues.join('; ') : "No critical compliance detected";
-
-    let opinion = "";
-
-    if (gen) {
-        // Simplified Prompt for Speed (No System Tags)
-        const prompt = `AUDIT CONTEXT: ${docType} Audit detected ${issueText}. Risk Score: ${riskScore}/100.
-TASK: Write 1 strict sentence summarizing the fraud risk.
-OPINION:`;
-
-        // Race between GenAI and a 25s Timeout
-        try {
-            const generationPromise = gen(prompt, {
-                max_new_tokens: 45,
-                do_sample: false, // Greedy Decoding (Fastest)
-                temperature: 0.1, // Deterministic
-                repetition_penalty: 1.1
-            });
-
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("GenAI Timeout")), 20000)
-            );
-
-            const response: any = await Promise.race([generationPromise, timeoutPromise]);
-
-            // Extract synthesis
-            const rawText = response[0].generated_text;
-            opinion = rawText.replace(prompt, "").trim();
-
-            // Fallback if empty
-            if (opinion.length < 10) throw new Error("Empty GenAI output");
-
-        } catch (err) {
-            console.warn("GenAI generation timed out or failed. Using template fallacy backup.", err);
-            // Template Synthesis Fallback (Instant)
-            if (riskScore > 75) {
-                opinion = `CRITICAL AUDIT ALERT: The document contains ${criticalIssues.length} high-severity violations, specifically ${issueText}. Reference Z-Score anomalies indicate potential price inflation typical of bid-rigging.`;
-            } else if (riskScore > 40) {
-                opinion = `MODERATE RISK: Procedural irregularities detected in ${findings.length > 0 ? findings[0].text : 'documentation'}. While price variance is within standard deviation, compliance gaps require manual review.`;
-            } else {
-                opinion = `COMPLIANT: No material structural defects found. Metadata and price points indicate adherence to standard procurement protocols.`;
-            }
-        }
-    }
-
-    // Fallback or Template if Generator fails/is missing
-    if (!opinion) {
-        if (riskScore > 75) opinion = `CRITICAL AUDIT FAILURE: Immediate forensic intervention required due to ${criticalIssues.length} severe violations including ${findings[0]?.text || 'regulatory breaches'}.`;
-        else if (riskScore > 40) opinion = `HIGH RISK DETECTED: Procurement contains significant deviations from PPDA compliance, specifically ${findings[0]?.text || 'irregularities'}.`;
-        else opinion = "COMPLIANT EXECUTION: Document aligns with standard PFM frameworks with no material irregularities detected.";
-    }
-
-    return opinion;
-}
-
-export async function analyzeDocument(text: string, mode: 'procurement' | 'contract' | 'fraud' | 'audit' = 'procurement') {
-    const bertPipeline = await getClassifier();
-    const truncatedText = text.substring(0, 2000);
-
-    const analysis: any = {
-        timestamp: new Date().toISOString(),
-        mode,
-        findings: [],
-        suggestions: [],
-        riskScore: 0,
-        riskLevel: 'Low',
-        alerts: [],
-        pillarAlignment: {
-            decisionIntelligence: 0.9,
-            complianceAutomation: 0.95,
-            hitlGovernance: 0.98
-        }
-    };
-
-    // 1. Regulatory Logic (PPDA Mapping)
-    console.log(`[SERVER] Starting sequential analysis of ${Object.keys(PPDA_FRAMEWORK).length} pillars...`);
-    const areas = Object.keys(PPDA_FRAMEWORK);
-    for (const area of areas) {
-        logMemory(`Pillar Start: ${area}`);
-        try {
-            const result = await bertPipeline(truncatedText, [area, 'compliant']);
-            const score = result.scores[0]; // Score for "area" label (non-compliance indicator)
-            const info = PPDA_FRAMEWORK[area];
-
-            // FIXED: Low score for the violation area = HIGH probability of that violation
-            // If the model assigns high probability to the violation label, flag it
-            if (score > 0.6) { // High confidence that this violation exists
-                analysis.findings.push({
-                    severity: info.severity,
-                    text: `${info.section} Violation: ${info.rule}`,
-                    label: area.toUpperCase(),
-                    confidence: (score * 100).toFixed(1) + '%'
-                });
-            }
-        } catch (err) {
-            console.error(`[SERVER] Pillar Analysis Error (${area}):`, err);
-        }
-    }
-
-    if (mode === 'procurement') {
-        const vendor = analyzeVendorConcentration(text);
-        if (vendor.concentrationRisk) {
-            analysis.findings.push({ severity: 'high', text: `Regulatory Risk: High Vendor concentration (${(vendor.concentrationRatio * 100).toFixed(0)}%)` });
-            analysis.suggestions.push('Conduct independent vendor due diligence as per Section 78.');
-        }
-        vendor.behavioralAlerts.forEach(a => analysis.alerts.push(a));
-    } else if (mode === 'fraud') {
-        const benford = analyzeBenfordsLaw(text);
-        if (benford.isSuspicious) {
-            const detail = benford.outliers.length > 0 ? `Forensic Outliers: ${benford.outliers.join(', ')}` : `${(benford.suspiciousRatio * 100).toFixed(1)}% Suspicious Pattern`;
-            analysis.findings.push({ severity: 'critical', text: `Financial Anomaly: ${detail}`, label: 'FORENSIC' });
-        }
-        scanHighRiskKeywords(text).forEach(kw => {
-            analysis.findings.push({ severity: kw.severity, text: `Integrity Risk: Term "${kw.keyword}" found.`, label: 'INTEGRITY' });
-        });
-    }
-
-    // 2. Advanced Risk Weighting
-    const weightedScore = analysis.findings.reduce((acc: number, f: any) => {
-        if (f.severity === 'critical') return acc + 35;
-        if (f.severity === 'high') return acc + 20;
-        return acc + 8;
-    }, 0);
-
-    analysis.riskScore = Math.min(100, weightedScore);
-    if (analysis.riskScore >= 70) analysis.riskLevel = 'Critical';
-    else if (analysis.riskScore >= 45) analysis.riskLevel = 'High';
-    else if (analysis.riskScore >= 20) analysis.riskLevel = 'Medium';
-    else analysis.riskLevel = 'Low';
-
-    analysis.topConcern = analysis.findings[0]?.text || "No major regulatory concerns identified.";
-
-    // 2.5: Dispose of Classifier before GenAI starts (Manual Handover)
-    console.log("[SERVER] Milestone: BERT Analysis complete. Handing over to GenAI...");
-    await disposeModel('classifier');
-
-    // 2.6: Run PPDA Rule-Based Compliance Checks (with memory safety)
-    console.log("[SERVER] Running PPDA Act 2015 rule-based compliance checks...");
-    logMemory("Before PPDA Rules");
-
-    // Check available memory before running PPDA rules
-    const memBefore = process.memoryUsage();
-    const heapUsedMB = memBefore.heapUsed / 1024 / 1024;
-
-    let ruleBasedFindings: any[] = [];
-
-    // Only run PPDA rules if we have enough memory (< 250MB used)
-    if (heapUsedMB < 250) {
-        try {
-            ruleBasedFindings = await checkPPDACompliance(text);
-            console.log(`[SERVER] PPDA Rules detected ${ruleBasedFindings.length} compliance issues`);
-        } catch (error) {
-            console.error("[SERVER] PPDA Rules failed:", error);
-            // Continue without PPDA findings if they fail
-        }
-    } else {
-        console.warn(`[SERVER] Skipping PPDA Rules - Memory too high: ${Math.round(heapUsedMB)}MB`);
-    }
-
-    logMemory("After PPDA Rules");
-
-    // Merge AI and Rule-Based findings
-    analysis.findings = [...analysis.findings, ...ruleBasedFindings];
-
-    // Recalculate risk score with combined findings
-    const criticalCount = analysis.findings.filter((f: any) => f.severity === 'critical').length;
-    const highCount = analysis.findings.filter((f: any) => f.severity === 'high').length;
-
-    // Enhanced risk calculation: critical=30pts, high=15pts, medium=5pts, low=2pts
-    const riskPoints = (criticalCount * 30) + (highCount * 15) +
-        (analysis.findings.filter((f: any) => f.severity === 'medium').length * 5) +
-        (analysis.findings.filter((f: any) => f.severity === 'low').length * 2);
-    analysis.riskScore = Math.min(100, riskPoints);
-
-    // 3. MEMORY-SAFE: Skip T5 synthesis to stay under 512MB limit
-    console.log("[SERVER] Skipping T5 synthesis to prevent OOM");
-
-    // Generate static audit opinion based on risk score
-    const riskLevel = analysis.riskScore > 70 ? 'HIGH' : analysis.riskScore > 40 ? 'MODERATE' : 'LOW';
-    analysis.auditOpinion = `Risk Level: ${riskLevel}. ${analysis.findings.length} compliance issues detected across ${analysis.findings.filter((f: any) => f.severity === 'critical').length} critical areas. Review recommended for PPDA Act 2021 compliance.`;
-
-    // No T5 model to dispose
-    console.log("[SERVER] Analysis complete without T5 synthesis");
-
-    analysis.pillarAlignment = {
-        decisionIntelligence: Math.max(0.1, 1 - (analysis.riskScore / 100)),
-        complianceAutomation: 0.96,
-        hitlGovernance: 0.98,
-    };
-
-    analysis.auditTrail = {
-        engine: "Dual-Stack (BERT-Q + GenAI-T5)",
-        regulatoryContext: "PPDA Act 2021",
-        confidence: 0.99, // Boosted by Dual Verify
-        statistics: { method: 'Z-Score + Benford + NLP + LLM' }
-    };
-
-    return analysis;
-}
-
-export const analyzeText = analyzeDocument;
