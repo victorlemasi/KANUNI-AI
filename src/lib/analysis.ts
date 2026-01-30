@@ -390,14 +390,13 @@ export async function analyzeDocument(text: string, mode: 'procurement' | 'contr
 
     // 2.6: Run PPDA Rule-Based Compliance Checks
     console.log("[SERVER] Running PPDA Act 2015 rule-based compliance checks...");
-    const ruleBasedFindings = await checkPPDACompliance(text, mode);
+    const ruleBasedFindings = await checkPPDACompliance(text);
     console.log(`[SERVER] PPDA Rules detected ${ruleBasedFindings.length} compliance issues`);
 
     // Merge AI and Rule-Based findings
     analysis.findings = [...analysis.findings, ...ruleBasedFindings];
 
     // Recalculate risk score with combined findings
-    const totalFindings = analysis.findings.length;
     const criticalCount = analysis.findings.filter((f: any) => f.severity === 'critical').length;
     const highCount = analysis.findings.filter((f: any) => f.severity === 'high').length;
 
