@@ -81,15 +81,21 @@ async function loadAI(type: 'classifier' | 'generator'): Promise<any> {
         env.cacheDir = "./.cache"; // Unified cache
 
         if (type === 'classifier') {
-            console.log("[SERVER] Loading BERT Classifier...");
-            classifier = await pipeline("zero-shot-classification", "Xenova/mobilebert-uncased-mnli");
+            console.log("[SERVER] Loading BERT Classifier (Quantized)...");
+            logMemory("Load Start: BERT");
+            classifier = await pipeline("zero-shot-classification", "Xenova/mobilebert-uncased-mnli", {
+                quantized: true
+            });
+            logMemory("Load End: BERT");
             return classifier;
         } else {
             console.log("[SERVER] Loading T5 Generator (77M)...");
+            logMemory("Load Start: T5");
             // LaMini-Flan-T5-77M is significantly smaller (~80MB) than 248M, preventing OOM
             generator = await pipeline("text2text-generation", "Xenova/LaMini-Flan-T5-77M", {
                 quantized: true
             });
+            logMemory("Load End: T5");
             return generator;
         }
     } catch (error: any) {
