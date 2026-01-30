@@ -8,8 +8,6 @@ let classifier: any = null;
 let generator: any = null;
 let isLoading = false;
 
-console.log("[SERVER] KANUNI AI Analysis Module Initialized. Ready for Forensic Tasks.");
-
 // Helper: Log current memory usage
 function logMemory(label: string) {
     const memory = process.memoryUsage();
