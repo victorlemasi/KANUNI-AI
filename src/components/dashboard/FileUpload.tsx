@@ -35,31 +35,68 @@ export default function FileUpload() {
         formData.append("file", file);
         formData.append("analysisType", analysisType);
 
+        let attempts = 0;
+        const maxRetries = 1;
+
         try {
-            // Ver AM: Switch to Route Handler for 60s maxDuration support
-            const response = await fetch('/api/analyze', {
-                method: 'POST',
-                body: formData,
-            });
+            while (attempts <= maxRetries) {
+                attempts++;
+                try {
+                    // Ver AM: Switch to Route Handler for 60s maxDuration support
+                    const response = await fetch('/api/analyze', {
+                        method: 'POST',
+                        body: formData,
+                    });
 
-            const result = await response.json();
+                    // Check for JSON content type to avoid "Unexpected end of JSON input"
+                    const contentType = response.headers.get("content-type");
+                    if (contentType && contentType.includes("application/json")) {
+                        const result = await response.json();
 
-            if (!response.ok || !result.success) {
-                setError(result.error || "Analysis failed. The server might be busy.");
-                return;
-            }
+                        if (!response.ok || !result.success) {
+                            throw new Error(result.error || "Analysis failed. The server might be busy.");
+                        }
 
-            const data = result.data;
-            setResult(data);
+                        const data = result.data;
+                        setResult(data);
 
-            // Persist for "Saved Reports"
-            if (typeof window !== 'undefined') {
-                const saved = JSON.parse(localStorage.getItem('kanuni_reports') || '[]');
-                localStorage.setItem('kanuni_reports', JSON.stringify([data, ...saved].slice(0, 20)));
+                        // Persist for "Saved Reports"
+                        if (typeof window !== 'undefined') {
+                            const saved = JSON.parse(localStorage.getItem('kanuni_reports') || '[]');
+                            localStorage.setItem('kanuni_reports', JSON.stringify([data, ...saved].slice(0, 20)));
+                        }
+                        return; // Success, exit function
+                    } else {
+                        // Handle non-JSON responses (usually 504 Gateway Timeout or 500 Server Error HTML)
+                        if (response.status === 503 || response.status === 504) {
+                            throw new Error(`Server temporarily unavailable (${response.status})`);
+                        }
+                        const text = await response.text();
+                        throw new Error(`Protocol Error: Server returned ${response.status} (${text.substring(0, 30)}...)`);
+                    }
+                } catch (err: any) {
+                    console.warn(`[Upload] Attempt ${attempts} failed:`, err);
+
+                    // Logic to decide if we should retry
+                    const isRetryable =
+                        err.message.includes("unavailable") ||
+                        err.message.includes("fetch") ||
+                        err.message.includes("Protocol Error");
+
+                    if (attempts <= maxRetries && isRetryable) {
+                        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
+                        continue;
+                    }
+                    throw err; // Exhausted retries or fatal error
+                }
             }
         } catch (err: any) {
-            console.error("Analysis error:", err);
-            setError(err.message || "Failed to analyze document");
+            console.error("Analysis final error:", err);
+            let msg = err.message || "Failed to analyze document";
+            if (msg.includes("JSON") || msg.includes("token")) {
+                msg = "Protocol Interruption: The server response was invalid. Please try again.";
+            }
+            setError(msg);
         } finally {
             setIsUploading(false);
         }
