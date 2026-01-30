@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-    serverExternalPackages: ["sharp", "onnxruntime-node", "@xenova/transformers"],
+    serverExternalPackages: ["sharp", "onnxruntime-node"],
     output: 'standalone',
     images: {
         unoptimized: true,
@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
             config.externals.push({
                 canvas: 'commonjs canvas',
             });
+
+            // Ensure @xenova/transformers is bundled correctly
+            config.resolve = config.resolve || {};
+            config.resolve.extensionAlias = {
+                '.js': ['.js', '.ts', '.tsx'],
+            };
         }
         return config;
     }

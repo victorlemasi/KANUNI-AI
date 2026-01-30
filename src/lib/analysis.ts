@@ -2,10 +2,14 @@ import path from "path";
 import fs from "fs";
 import { checkPPDACompliance } from "./ppda-rules";
 
-// Use require for transformers to prevent class constructor errors in standalone builds
-function getTransformers() {
-    // Use require instead of dynamic import for better compatibility
-    return require("@xenova/transformers");
+// Dynamic import for transformers (ESM package requirement)
+let transformersModule: any = null;
+
+async function getTransformers() {
+    if (!transformersModule) {
+        transformersModule = await import("@xenova/transformers");
+    }
+    return transformersModule;
 }
 
 // Global references for singleton management
@@ -85,8 +89,8 @@ async function loadAI(type: 'classifier' | 'generator'): Promise<any> {
         isLoading = true;
         console.log(`[SERVER] Runtime Environment: HOST=${process.env.HOSTNAME}, PORT=${process.env.PORT}`);
 
-        // Get transformers module (synchronous with require)
-        const { env, pipeline } = getTransformers();
+        // Get transformers module (async dynamic import for ESM)
+        const { env, pipeline } = await getTransformers();
 
         env.allowRemoteModels = false;
         env.allowLocalModels = true;
