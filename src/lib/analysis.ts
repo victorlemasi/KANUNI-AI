@@ -1,4 +1,5 @@
 import { pipeline, env } from "@xenova/transformers";
+import path from "path";
 
 // We use dynamic imports to prevent Transformers.js from initializing during SSR/Build
 // Global references for singleton management
@@ -76,9 +77,13 @@ async function loadAI(type: 'classifier' | 'generator'): Promise<any> {
 
     try {
         isLoading = true;
-        env.allowLocalModels = false;
+        env.allowRemoteModels = false;
+        env.allowLocalModels = true;
         env.useBrowserCache = false;
-        env.cacheDir = "./.cache"; // Unified cache
+        const cacheDir = process.env.TRANSFORMERS_CACHE || path.join(process.cwd(), ".cache");
+        env.cacheDir = cacheDir;
+        console.log(`[SERVER] Cache Dir: ${cacheDir}`);
+        console.log(`[SERVER] Remote: ${env.allowRemoteModels}, Local: ${env.allowLocalModels}`);
 
         if (type === 'classifier') {
             console.log("[SERVER] Loading BERT Classifier (Quantized)...");
