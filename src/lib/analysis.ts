@@ -400,10 +400,30 @@ export async function analyzeDocument(text: string, mode: 'procurement' | 'contr
     console.log("[SERVER] Milestone: BERT Analysis complete. Handing over to GenAI...");
     await disposeModel('classifier');
 
-    // 2.6: Run PPDA Rule-Based Compliance Checks
+    // 2.6: Run PPDA Rule-Based Compliance Checks (with memory safety)
     console.log("[SERVER] Running PPDA Act 2015 rule-based compliance checks...");
-    const ruleBasedFindings = await checkPPDACompliance(text);
-    console.log(`[SERVER] PPDA Rules detected ${ruleBasedFindings.length} compliance issues`);
+    logMemory("Before PPDA Rules");
+
+    // Check available memory before running PPDA rules
+    const memBefore = process.memoryUsage();
+    const heapUsedMB = memBefore.heapUsed / 1024 / 1024;
+
+    let ruleBasedFindings: any[] = [];
+
+    // Only run PPDA rules if we have enough memory (< 250MB used)
+    if (heapUsedMB < 250) {
+        try {
+            ruleBasedFindings = await checkPPDACompliance(text);
+            console.log(`[SERVER] PPDA Rules detected ${ruleBasedFindings.length} compliance issues`);
+        } catch (error) {
+            console.error("[SERVER] PPDA Rules failed:", error);
+            // Continue without PPDA findings if they fail
+        }
+    } else {
+        console.warn(`[SERVER] Skipping PPDA Rules - Memory too high: ${Math.round(heapUsedMB)}MB`);
+    }
+
+    logMemory("After PPDA Rules");
 
     // Merge AI and Rule-Based findings
     analysis.findings = [...analysis.findings, ...ruleBasedFindings];

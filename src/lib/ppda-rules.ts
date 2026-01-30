@@ -358,9 +358,22 @@ function analyzeTimelines(text: string): PPDAFinding[] {
 export async function checkPPDACompliance(text: string): Promise<PPDAFinding[]> {
     const findings: PPDAFinding[] = [];
 
-    // Run all section checks
+    // Early exit for very small documents (likely not procurement docs)
+    if (text.length < 200) {
+        return findings;
+    }
+
+    // Limit text size to prevent memory issues (max 50KB)
+    const limitedText = text.substring(0, 50000);
+
+    // Run section checks (limit to first 5 violations to prevent memory bloat)
+    let violationCount = 0;
+    const maxViolations = 5;
+
     for (const section of Object.values(PPDA_SECTIONS)) {
-        const isCompliant = section.check(text);
+        if (violationCount >= maxViolations) break;
+
+        const isCompliant = section.check(limitedText);
 
         if (!isCompliant) {
             findings.push({
@@ -372,15 +385,23 @@ export async function checkPPDACompliance(text: string): Promise<PPDAFinding[]> 
                 section: section.number,
                 recommendation: section.recommendation
             });
+            violationCount++;
         }
     }
 
-    // Run additional analysis
-    findings.push(...analyzePricing(text));
-    findings.push(...analyzeVendorConcentration(text));
-    findings.push(...analyzeTimelines(text));
+    // Run additional analysis only if document is procurement-related
+    if (/procurement|tender|bid|contract/i.test(limitedText)) {
+        const pricingFindings = analyzePricing(limitedText);
+        const vendorFindings = analyzeVendorConcentration(limitedText);
+        const timelineFindings = analyzeTimelines(limitedText);
 
-    return findings;
+        // Limit total findings to 10 to prevent memory issues
+        findings.push(...pricingFindings.slice(0, 2));
+        findings.push(...vendorFindings.slice(0, 2));
+        findings.push(...timelineFindings.slice(0, 2));
+    }
+
+    return findings.slice(0, 10); // Hard limit to 10 findings
 }
 
 // Export section definitions for reference
