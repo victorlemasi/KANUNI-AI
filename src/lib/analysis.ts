@@ -299,7 +299,7 @@ export async function analyzeDocument(text: string, mode: 'procurement' | 'contr
     console.log(`[SERVER] Starting sequential analysis of ${Object.keys(PPDA_FRAMEWORK).length} pillars...`);
     const areas = Object.keys(PPDA_FRAMEWORK);
     for (const area of areas) {
-        console.log(`[SERVER] Analyzing Pillar: ${area}...`);
+        logMemory(`Pillar Start: ${area}`);
         try {
             const result = await bertPipeline(truncatedText, [area, 'compliant']);
             const score = result.scores[0];
@@ -352,13 +352,13 @@ export async function analyzeDocument(text: string, mode: 'procurement' | 'contr
 
     // 2.5: Dispose of Classifier before GenAI starts (Manual Handover)
     console.log("[SERVER] Milestone: BERT Analysis complete. Handing over to GenAI...");
-    classifier = null;
+    await disposeModel('classifier');
 
     // 3. DUAL-AI: Synthesize Opinion
     analysis.auditOpinion = await generateAuditOpinion(analysis.findings, analysis.riskScore, mode);
 
     // 3.5: Finalize & Dispose
-    generator = null;
+    await disposeModel('generator');
 
     analysis.pillarAlignment = {
         decisionIntelligence: Math.max(0.1, 1 - (analysis.riskScore / 100)),

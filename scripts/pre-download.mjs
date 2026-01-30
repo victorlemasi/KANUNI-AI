@@ -19,8 +19,8 @@ async function preDownload() {
         console.log("📥 Downloading mobilebert-uncased-mnli model...");
         await pipeline("zero-shot-classification", "Xenova/mobilebert-uncased-mnli");
 
-        console.log("📥 Downloading LaMini-Flan-T5-248M (Quantized) model...");
-        await pipeline("text2text-generation", "Xenova/LaMini-Flan-T5-248M", { quantized: true });
+        console.log("📥 Downloading LaMini-Flan-T5-77M (Quantized) model...");
+        await pipeline("text2text-generation", "Xenova/LaMini-Flan-T5-77M", { quantized: true });
 
         console.log("✅ All models downloaded and cached successfully!");
     } catch (error) {
