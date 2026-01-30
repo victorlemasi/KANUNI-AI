@@ -1,15 +1,7 @@
 
 import { checkPPDACompliance } from "./ppda-rules";
 
-// PPDA Act Regulatory Framework Mapping
-const PPDA_FRAMEWORK: Record<string, { section: string, rule: string, severity: 'high' | 'critical' }> = {
-    'competitive bidding': { section: 'Section 42', rule: 'Open Competitive Bidding is the preferred method.', severity: 'high' },
-    'procurement planning': { section: 'Section 45', rule: 'All procurement must be planned and budgeted.', severity: 'high' },
-    'value for money': { section: 'Section 48', rule: 'Procurement must ensure economical and efficient use of funds.', severity: 'critical' },
-    'PPDA Act compliance': { section: 'General', rule: 'Adherence to the regulatory framework of the PPDA Act.', severity: 'critical' },
-    'bid rigging': { section: 'Section 93', rule: 'Prohibition of anti-competitive practices and bid-rigging.', severity: 'critical' },
-    'conflict of interest': { section: 'Section 59', rule: 'Disclosure and management of personal interests in procurement.', severity: 'high' }
-};
+
 
 // Statistical Helper: Calculate Z-Score
 export function calculateZScore(values: number[]): { value: number, zScore: number, isOutlier: boolean }[] {
@@ -100,6 +92,7 @@ export async function analyzeDocument(file: File, text: string, mode: 'procureme
     };
 
     return {
+        mode: mode,
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,

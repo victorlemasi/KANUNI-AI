@@ -9,7 +9,7 @@ export default function FileUpload() {
     const [isUploading, setIsUploading] = useState(false);
     const [result, setResult] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
-    const [worker, setWorker] = useState<Worker | null>(null);
+    // State removed: worker ref is sufficient
     const [modelStatus, setModelStatus] = useState<string>('');
     const [progress, setProgress] = useState<number>(0);
 
@@ -20,7 +20,7 @@ export default function FileUpload() {
         if (!workerRef.current) {
             const w = new Worker('/worker.js', { type: 'module' });
             w.addEventListener('message', (e) => {
-                const { status, message, output, file, progress: p } = e.data;
+                const { status, message, output, progress: p } = e.data;
                 switch (status) {
                     case 'initiate':
                         setModelStatus(message);
@@ -44,7 +44,7 @@ export default function FileUpload() {
                 }
             });
             workerRef.current = w;
-            setWorker(w);
+            // setWorker(w); // Unused state removed
         }
         return () => {
             // cleanup if needed, but we usually want to keep model loaded

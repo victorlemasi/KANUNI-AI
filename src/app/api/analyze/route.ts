@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { analyzeText } from "@/lib/analysis";
+import { analyzeDocument } from "@/lib/analysis";
 
 export const maxDuration = 60; // Definitive fix for 30s timeout (Phase 41)
 
@@ -122,12 +122,9 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: "No readable content found" }, { status: 422 });
         }
 
-        const analysis = await analyzeText(text, analysisType);
+        const analysis = await analyzeDocument(file, text, analysisType);
 
         const finalResult = {
-            fileName: file.name,
-            fileSize: file.size,
-            timestamp: new Date().toISOString(),
             textPreview: text.substring(0, 500),
             imageMetadata,
             reportSummary: `KANUNI AI Report for ${file.name}. Risk Score: ${analysis.riskScore}%.`,
@@ -144,7 +141,7 @@ export async function POST(req: NextRequest) {
                     riskScore: analysis.riskScore,
                     riskLevel: analysis.riskLevel,
                     topConcern: analysis.topConcern,
-                    analysisMode: analysis.mode,
+                    analysisMode: (analysis as any).mode || analysisType,
                     findings: JSON.stringify(analysis.findings),
                     suggestions: JSON.stringify(analysis.suggestions),
                     pillarAlignment: JSON.stringify(analysis.pillarAlignment),

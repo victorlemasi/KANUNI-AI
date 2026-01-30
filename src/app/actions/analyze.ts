@@ -1,6 +1,6 @@
 "use server";
 
-import { analyzeText } from "@/lib/analysis";
+import { analyzeDocument } from "@/lib/analysis";
 
 export async function processProcurementDocument(formData: FormData) {
   const file = formData.get("file") as File;
@@ -214,13 +214,10 @@ export async function processProcurementDocument(formData: FormData) {
     console.log(`[SERVER] Content extracted (${text.length} chars). Starting AI analysis...`);
 
     // 2. Perform BERT Analysis
-    const analysis = await analyzeText(text, analysisType);
+    const analysis = await analyzeDocument(file, text, analysisType);
     console.log("[SERVER] Milestone: AI Analysis complete successfully.");
 
     const finalResult = {
-      fileName: file.name,
-      fileSize: file.size,
-      timestamp: new Date().toISOString(),
       textPreview: text.substring(0, 500),
       imageMetadata,
       reportSummary: `KANUNI AI ${imageMetadata ? 'Image' : 'Document'} Report for ${file.name}. Risk Level: ${analysis.riskLevel} (${analysis.riskScore}%). Primary Concern: ${analysis.topConcern}.`,
@@ -238,7 +235,7 @@ export async function processProcurementDocument(formData: FormData) {
           riskScore: analysis.riskScore,
           riskLevel: analysis.riskLevel,
           topConcern: analysis.topConcern,
-          analysisMode: analysis.mode,
+          analysisMode: (analysis as any).mode || analysisType,
           findings: JSON.stringify(analysis.findings),
           suggestions: JSON.stringify(analysis.suggestions),
           pillarAlignment: JSON.stringify(analysis.pillarAlignment),
