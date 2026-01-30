@@ -1,6 +1,7 @@
 import { pipeline, env } from "@xenova/transformers";
 import path from "path";
 import fs from "fs";
+import { checkPPDACompliance, type PPDAFinding } from "./ppda-rules";
 
 // We use dynamic imports to prevent Transformers.js from initializing during SSR/Build
 // Global references for singleton management
@@ -387,19 +388,27 @@ export async function analyzeDocument(text: string, mode: 'procurement' | 'contr
     console.log("[SERVER] Milestone: BERT Analysis complete. Handing over to GenAI...");
     await disposeModel('classifier');
 
-    // 3. DUAL-AI: Synthesize Opinion
-    // TEMPORARY: Disable T5 synthesis to prevent 60s timeout (will optimize separately)
-    // analysis.auditOpinion = await generateAuditOpinion(analysis.findings, analysis.riskScore, mode);
+    // 2.6: Run PPDA Rule-Based Compliance Checks
+    console.log("[SERVER] Running PPDA Act 2015 rule-based compliance checks...");
+    const ruleBasedFindings = await checkPPDACompliance(text, mode);
+    console.log(`[SERVER] PPDA Rules detected ${ruleBasedFindings.length} compliance issues`);
 
-    // Instant Template Fallback
-    const criticalCount = analysis.findings.filter((f: any) => f.severity === 'critical' || f.severity === 'high').length;
-    if (analysis.riskScore > 75) {
-        analysis.auditOpinion = `CRITICAL AUDIT ALERT: The document contains ${criticalCount} high-severity violations. Reference Z-Score anomalies indicate potential price inflation typical of bid-rigging.`;
-    } else if (analysis.riskScore > 40) {
-        analysis.auditOpinion = `MODERATE RISK: Procedural irregularities detected. While price variance is within standard deviation, compliance gaps require manual review.`;
-    } else {
-        analysis.auditOpinion = `COMPLIANT: No material structural defects found. Metadata and price points indicate adherence to standard procurement protocols.`;
-    }
+    // Merge AI and Rule-Based findings
+    analysis.findings = [...analysis.findings, ...ruleBasedFindings];
+
+    // Recalculate risk score with combined findings
+    const totalFindings = analysis.findings.length;
+    const criticalCount = analysis.findings.filter((f: any) => f.severity === 'critical').length;
+    const highCount = analysis.findings.filter((f: any) => f.severity === 'high').length;
+
+    // Enhanced risk calculation: critical=30pts, high=15pts, medium=5pts, low=2pts
+    const riskPoints = (criticalCount * 30) + (highCount * 15) +
+        (analysis.findings.filter((f: any) => f.severity === 'medium').length * 5) +
+        (analysis.findings.filter((f: any) => f.severity === 'low').length * 2);
+    analysis.riskScore = Math.min(100, riskPoints);
+
+    // 3. DUAL-AI: Synthesize Opinion with Rule-Based Context
+    analysis.auditOpinion = await generateAuditOpinion(analysis.findings, analysis.riskScore, mode);
 
     // 3.5: Finalize & Dispose
     await disposeModel('generator');
