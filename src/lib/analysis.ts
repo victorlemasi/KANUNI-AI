@@ -27,7 +27,7 @@ async function disposeModel(modelType: 'classifier' | 'generator') {
     if (global.gc) {
         try { global.gc(); } catch (e) { }
     }
-    await new Promise(resolve => setTimeout(resolve, 500)); // Grace period for GC
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Grace period for GC (increased for safety)
 }
 
 export async function getClassifier() {
@@ -67,10 +67,9 @@ async function loadAI(type: 'classifier' | 'generator'): Promise<any> {
             classifier = await pipeline("zero-shot-classification", "Xenova/mobilebert-uncased-mnli");
             return classifier;
         } else {
-            console.log("[SERVER] Loading T5 Generator...");
-            // LaMini-Flan-T5-77M is smaller than 248M (better for 512MB limit)
-            // switching to 77M if 248M is too heavy, but keeping 248M for now as requested unless it fails again
-            generator = await pipeline("text2text-generation", "Xenova/LaMini-Flan-T5-248M", {
+            console.log("[SERVER] Loading T5 Generator (77M)...");
+            // LaMini-Flan-T5-77M is significantly smaller (~80MB) than 248M, preventing OOM
+            generator = await pipeline("text2text-generation", "Xenova/LaMini-Flan-T5-77M", {
                 quantized: true
             });
             return generator;
