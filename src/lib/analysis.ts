@@ -332,14 +332,17 @@ export async function analyzeDocument(text: string, mode: 'procurement' | 'contr
         logMemory(`Pillar Start: ${area}`);
         try {
             const result = await bertPipeline(truncatedText, [area, 'compliant']);
-            const score = result.scores[0];
+            const score = result.scores[0]; // Score for "area" label (non-compliance indicator)
             const info = PPDA_FRAMEWORK[area];
 
-            if (score > 0.55 && score < 0.8) { // Moderate non-compliance indicated by low "compliant" score
+            // FIXED: Low score for the violation area = HIGH probability of that violation
+            // If the model assigns high probability to the violation label, flag it
+            if (score > 0.6) { // High confidence that this violation exists
                 analysis.findings.push({
                     severity: info.severity,
                     text: `${info.section} Violation: ${info.rule}`,
-                    label: area.toUpperCase()
+                    label: area.toUpperCase(),
+                    confidence: (score * 100).toFixed(1) + '%'
                 });
             }
         } catch (err) {
