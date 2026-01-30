@@ -5,6 +5,15 @@ const nextConfig: NextConfig = {
     output: 'standalone',
     images: {
         unoptimized: true,
+    },
+    webpack: (config, { isServer }) => {
+        if (isServer) {
+            // Ignore canvas module to prevent DOMMatrix errors
+            config.externals.push({
+                canvas: 'commonjs canvas',
+            });
+        }
+        return config;
     }
 };
 

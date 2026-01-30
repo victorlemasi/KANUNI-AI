@@ -1,0 +1,14 @@
+{
+    "functions": {
+        "src/app/api/**/*.ts": {
+            "maxDuration": 60,
+            "memory": 3008
+        }
+    },
+    "env": {
+        "NODE_OPTIONS": "--max-old-space-size=256",
+        "TRANSFORMERS_CACHE": "/tmp/.cache",
+        "XENOVA_ENV": "production",
+        "NEXT_TELEMETRY_DISABLED": "1"
+    }
+}
