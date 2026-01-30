@@ -6,8 +6,17 @@ let classifier: any = null;
 let generator: any = null;
 let isLoading = false;
 
+// Helper: Log current memory usage
+function logMemory(label: string) {
+    const memory = process.memoryUsage();
+    const used = memory.heapUsed / 1024 / 1024;
+    const rss = memory.rss / 1024 / 1024;
+    console.log(`[MEMORY] ${label}: Heap=${Math.round(used)}MB, RSS=${Math.round(rss)}MB`);
+}
+
 // Helper: Force disposal of a model
 async function disposeModel(modelType: 'classifier' | 'generator') {
+    logMemory(`Before disposal of ${modelType}`);
     if (modelType === 'classifier' && classifier) {
         console.log("[SERVER] Disposing BERT Classifier to free memory...");
         if (typeof classifier.dispose === 'function') {
@@ -28,22 +37,31 @@ async function disposeModel(modelType: 'classifier' | 'generator') {
         try { global.gc(); } catch (e) { }
     }
     await new Promise(resolve => setTimeout(resolve, 2000)); // Grace period for GC (increased for safety)
+    logMemory(`After disposal of ${modelType}`);
 }
 
 export async function getClassifier() {
+    logMemory("Entering getClassifier");
     // strict exclusivity: ensure generator is gone
     if (generator) await disposeModel('generator');
 
     if (classifier) return classifier;
 
+    // Aggressive pre-load cleanup
+    if (global.gc) { try { global.gc(); } catch (e) { } }
+
     return loadAI('classifier');
 }
 
 export async function getGenAI() {
+    logMemory("Entering getGenAI");
     // strict exclusivity: ensure classifier is gone
     if (classifier) await disposeModel('classifier');
 
     if (generator) return generator;
+
+    // Aggressive pre-load cleanup
+    if (global.gc) { try { global.gc(); } catch (e) { } }
 
     return loadAI('generator');
 }
