@@ -8,6 +8,8 @@ let classifier: any = null;
 let generator: any = null;
 let isLoading = false;
 
+console.log("[BOOT] Analysis Module Loaded.");
+
 // Helper: Log current memory usage
 function logMemory(label: string) {
     const memory = process.memoryUsage();
