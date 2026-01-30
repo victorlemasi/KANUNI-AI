@@ -85,8 +85,8 @@ async function loadAI(type: 'classifier' | 'generator'): Promise<any> {
         isLoading = true;
         console.log(`[SERVER] Runtime Environment: HOST=${process.env.HOSTNAME}, PORT=${process.env.PORT}`);
 
-        // Get transformers module dynamically
-        const { env, pipeline } = await getTransformers();
+        // Get transformers module (synchronous with require)
+        const { env, pipeline } = getTransformers();
 
         env.allowRemoteModels = false;
         env.allowLocalModels = true;
