@@ -1,5 +1,6 @@
 import { pipeline, env } from "@xenova/transformers";
 import path from "path";
+import fs from "fs";
 
 // We use dynamic imports to prevent Transformers.js from initializing during SSR/Build
 // Global references for singleton management
@@ -82,7 +83,19 @@ async function loadAI(type: 'classifier' | 'generator'): Promise<any> {
         env.useBrowserCache = false;
         const cacheDir = process.env.TRANSFORMERS_CACHE || path.join(process.cwd(), ".cache");
         env.cacheDir = cacheDir;
+
         console.log(`[SERVER] Cache Dir: ${cacheDir}`);
+        try {
+            if (fs.existsSync(cacheDir)) {
+                const files = fs.readdirSync(cacheDir);
+                console.log(`[SERVER] Cache Contents (${files.length} items):`, files.slice(0, 5));
+            } else {
+                console.warn(`[SERVER] Cache directory NOT FOUND at ${cacheDir}`);
+            }
+        } catch (e) {
+            console.error("[SERVER] Failed to read cache dir:", e);
+        }
+
         console.log(`[SERVER] Remote: ${env.allowRemoteModels}, Local: ${env.allowLocalModels}`);
 
         if (type === 'classifier') {

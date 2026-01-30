@@ -10,11 +10,11 @@ services:
       - key: NEXT_TELEMETRY_DISABLED
         value: 1
       - key: NODE_OPTIONS
-        value: --max-old-space-size=384
+        value: --max-old-space-size=420
       - key: HOSTNAME
         value: 0.0.0.0
       - key: PORT
-        value: 10000
+        value: 3000
       - key: TRANSFORMERS_CACHE
         value: /opt/render/project/src/.cache
       - key: XENOVA_ENV
