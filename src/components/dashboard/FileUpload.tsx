@@ -31,6 +31,12 @@ export default function FileUpload() {
                     case 'analyzing':
                         setModelStatus(message);
                         break;
+                    case 'classification_complete':
+                        setResult((prev: any) => ({
+                            ...prev,
+                            pillarAlignment: output
+                        }));
+                        break;
                     case 'complete':
                         // Merge synthesis into result
                         setResult((prev: any) => ({
@@ -55,9 +61,9 @@ export default function FileUpload() {
         if (e.target.files && e.target.files[0]) {
             const selected = e.target.files[0];
             const ext = selected.name.split('.').pop()?.toLowerCase();
-            const allowed = ['pdf', 'docx', 'png', 'jpg', 'jpeg', 'webp'];
+            const allowed = ['pdf', 'docx', 'png', 'jpg', 'jpeg', 'webp', 'xlsx', 'xls', 'csv', 'txt'];
             if (!ext || !allowed.includes(ext)) {
-                setError("Please upload a PDF, Word, or Image file (.png, .jpg, .webp)");
+                setError("Please upload a supported file (PDF, Docs, Excel, CSV, Text, Image)");
                 return;
             }
             setFile(selected);
@@ -99,7 +105,7 @@ export default function FileUpload() {
 
                         // 2. Trigger Client-Side AI (Synthesis)
                         if (workerRef.current && result.data.text) {
-                            setModelStatus("Loading Meta BART Model (85MB)...");
+                            setModelStatus("Initializing AI Pipeline...");
                             workerRef.current.postMessage({
                                 type: 'analyze',
                                 text: result.data.text
@@ -213,7 +219,7 @@ AUDIT TRAIL:
                         id="file-upload"
                         className="hidden"
                         onChange={handleFileChange}
-                        accept=".pdf,.docx,.png,.jpg,.jpeg,.webp"
+                        accept=".pdf,.docx,.png,.jpg,.jpeg,.webp,.xlsx,.xls,.csv,.txt"
                     />
                     <label
                         htmlFor="file-upload"
@@ -227,7 +233,7 @@ AUDIT TRAIL:
                                 {file ? file.name : "DROP SOURCE FILE OR CLICK TO BROWSE"}
                             </span>
                             <p className="text-[9px] text-neutral-600 font-bold uppercase tracking-[0.4em]">
-                                PDF • DOCX • PNG • JPG (Max 50MB)
+                                PDF • DOCX • EXCEL • CSV • TXT • IMG (Max 50MB)
                             </p>
                         </div>
                     </label>

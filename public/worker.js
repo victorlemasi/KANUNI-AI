@@ -6,16 +6,17 @@ env.allowLocalModels = false;
 env.useBrowserCache = true;
 
 class AnalysisPipeline {
-    static task = 'text-classification';
-    static model = 'Xenova/bert-base-uncased';
-    // We will need a mapping for our specific PPDA pillars if we want exact parity, 
-    // but for now let's stick to the "Meta model" request for the synthesis part which was the heavy lifter.
+    static task = 'zero-shot-classification';
+    static model = 'Xenova/bart-large-mnli';
 
     static instance = null;
 
     static async getInstance(progress_callback = null) {
         if (this.instance === null) {
-            this.instance = await pipeline(this.task, this.model, { progress_callback });
+            this.instance = await pipeline(this.task, this.model, {
+                progress_callback,
+                quantized: true
+            });
         }
         return this.instance;
     }
@@ -23,8 +24,8 @@ class AnalysisPipeline {
 
 class SynthesisPipeline {
     static task = 'summarization';
-    // Meta's BART model (Distilled version for speed/size balance)
-    static model = 'Xenova/distilbart-cnn-6-6';
+    // Meta's BART model (Large version for better accuracy)
+    static model = 'Xenova/bart-large-cnn';
 
     static instance = null;
 
@@ -46,13 +47,36 @@ self.addEventListener('message', async (event) => {
 
     try {
         if (type === 'analyze') {
-            // 1. Run Classification (Simulating the 6 pillars)
-            // Note: Real BERT classification would need the specific fine-tuned model. 
-            // For this migration, we will focus on the Synthesis part which was causing the OOM.
-            // We can use the server-side Regex for "compliance" and use the Client AI for "Analysis/Summary".
+            // 1. Run Classification (The 3 Pillars)
+            self.postMessage({ status: 'initiate', message: 'Loading Classifier (~350MB)...' });
+
+            const classifier = await AnalysisPipeline.getInstance((data) => {
+                self.postMessage({ status: 'progress', ...data });
+            });
+
+            self.postMessage({ status: 'analyzing', message: 'Analyzing Governance Pillars...' });
+
+            const labels = ['Decision Intelligence', 'Compliance Automation', 'HITL Governance'];
+            const classificationResult = await classifier(text, labels, { multi_label: true });
+
+            // Normalize scores to object map
+            const pillarScores = {};
+            classificationResult.labels.forEach((label, index) => {
+                // Convert simple key name for UI (camelCase)
+                const key = label === 'Decision Intelligence' ? 'decisionIntelligence' :
+                    label === 'Compliance Automation' ? 'complianceAutomation' :
+                        'hitlGovernance';
+                pillarScores[key] = classificationResult.scores[index];
+            });
+
+            // Send partial result based on classification
+            self.postMessage({
+                status: 'classification_complete',
+                output: pillarScores
+            });
 
             // 2. Run Synthesis (The Meta Model)
-            self.postMessage({ status: 'initiate', message: 'Loading Meta BART model...' });
+            self.postMessage({ status: 'initiate', message: 'Loading Generator (~350MB)...' });
 
             const synthesizer = await SynthesisPipeline.getInstance((data) => {
                 self.postMessage({

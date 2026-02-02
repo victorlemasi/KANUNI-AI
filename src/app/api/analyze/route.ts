@@ -111,6 +111,26 @@ export async function POST(req: NextRequest) {
             } else if (fileNameLower.endsWith(".docx")) {
                 const result = await wordParser({ buffer });
                 text = result.value;
+            } else if (fileNameLower.match(/\.(xlsx|xls|csv)$/)) {
+                // EXCEL / CSV PARSING
+                const XLSX = require("xlsx");
+                const workbook = XLSX.read(buffer, { type: 'buffer' });
+                const sheetNames = workbook.SheetNames;
+
+                text = `[SPREADSHEET ANALYSIS: ${file.name}]\n`;
+
+                // Limit to first 3 sheets to avoid token overflow
+                sheetNames.slice(0, 3).forEach((sheetName: string) => {
+                    const sheet = workbook.Sheets[sheetName];
+                    // Convert to CSV string for better LLM comprehension of structure
+                    const csvContent = XLSX.utils.sheet_to_csv(sheet);
+                    if (csvContent && csvContent.length > 0) {
+                        text += `\n--- SHEET: ${sheetName} ---\n${csvContent.substring(0, 15000)}`; // Cap each sheet
+                    }
+                });
+            } else if (fileNameLower.endsWith(".txt")) {
+                // PLAIN TEXT PARSING
+                text = new TextDecoder("utf-8").decode(buffer);
             } else if (fileNameLower.match(/\.(png|jpg|jpeg|webp)$/)) {
                 let sharp;
                 try { sharp = require("sharp"); } catch { }
