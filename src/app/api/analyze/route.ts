@@ -102,25 +102,24 @@ export async function POST(req: NextRequest) {
         };
 
         const parsePDF = async (buffer: Buffer): Promise<string> => {
-            const pdfjsLib = require("pdfjs-dist");
-
-            // Convert Buffer to Uint8Array for pdfjs-dist
-            const uint8Array = new Uint8Array(buffer);
-            const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
-            const pdf = await loadingTask.promise;
-
-            let fullText = "";
-            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-                const page = await pdf.getPage(pageNum);
-                const textContent = await page.getTextContent();
-                const pageText = textContent.items.map((item: any) => item.str).join(" ");
-                fullText += pageText + "\n";
-            }
-
-            return fullText;
+            return new Promise((resolve, reject) => {
+                const { PdfReader } = require("pdfreader");
+                let fullText = "";
+                new PdfReader().parseBuffer(buffer, (err: any, item: any) => {
+                    if (err) {
+                        console.error("[API] pdfreader Error:", err);
+                        reject(err);
+                    } else if (!item) {
+                        // End of buffer
+                        resolve(fullText);
+                    } else if (item.text) {
+                        fullText += item.text + " ";
+                    }
+                });
+            });
         };
 
-        // Note: Using pdfjs-dist (pure JS) to avoid bundling issues with pdf-parse/pdf2json
+        // Note: Using pdfreader (pure JS) to avoid worker/bundling issues with pdfjs-dist/pdf-parse
         const mammothModule = require("mammoth");
         const wordParser = getParser(mammothModule, 'extractRawText');
 
