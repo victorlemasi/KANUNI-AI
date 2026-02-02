@@ -104,7 +104,9 @@ export async function POST(req: NextRequest) {
         const parsePDF = async (buffer: Buffer): Promise<string> => {
             const pdfjsLib = require("pdfjs-dist");
 
-            const loadingTask = pdfjsLib.getDocument({ data: buffer });
+            // Convert Buffer to Uint8Array for pdfjs-dist
+            const uint8Array = new Uint8Array(buffer);
+            const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
             const pdf = await loadingTask.promise;
 
             let fullText = "";
