@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
         };
 
         const parsePDF = async (buffer: Buffer): Promise<string> => {
-            const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
+            const pdfjsLib = require("pdfjs-dist");
 
             const loadingTask = pdfjsLib.getDocument({ data: buffer });
             const pdf = await loadingTask.promise;
