@@ -104,19 +104,11 @@ export async function POST(req: NextRequest) {
         const parsePDF = async (parser: any, dataBuffer: Buffer) => {
             try {
                 const callTarget = parser.parse || parser.pdf || parser;
-                let result;
-                try {
-                    // Standard call
-                    result = await callTarget(dataBuffer);
-                } catch (err: any) {
-                    if (err.message?.includes("new")) {
-                        console.log("[API] Using constructor-call for PDF...");
-                        result = new parser(dataBuffer);
-                    } else throw err;
-                }
-                return result;
+                // Standard call to pdf-parse (v1.1.1)
+                // It returns a Promise that resolves to { text, numpages, info, ... }
+                return await callTarget(dataBuffer);
             } catch (err: any) {
-                console.error("[API] PDF Parsing Failed:", err);
+                console.error("[API] PDF Parsing Failed (Standard):", err);
                 throw err;
             }
         };
