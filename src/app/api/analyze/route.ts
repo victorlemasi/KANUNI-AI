@@ -101,27 +101,34 @@ export async function POST(req: NextRequest) {
             return "";
         };
 
-        const parsePDF = async (parser: any, dataBuffer: Buffer) => {
-            try {
-                console.log(`[API] parsePDF: Input Buffer Size: ${dataBuffer?.length}, IsBuffer: ${Buffer.isBuffer(dataBuffer)}`);
-                const callTarget = parser.parse || parser.pdf || parser;
-                console.log(`[API] parsePDF: Parser Type: ${typeof parser}, CallTarget Type: ${typeof callTarget}`);
+        const parsePDF = async (buffer: Buffer): Promise<string> => {
+            return new Promise((resolve, reject) => {
+                try {
+                    const PDFParser = require("pdf2json");
+                    const parser = new PDFParser(null, 1); // 1 = raw text
 
-                if (!dataBuffer || dataBuffer.length === 0) {
-                    throw new Error("Buffer is empty or null before pdf-parse");
+                    parser.on("pdfParser_dataError", (errData: any) => {
+                        console.error("[API] pdf2json Error:", errData.parserError);
+                        reject(errData.parserError);
+                    });
+
+                    parser.on("pdfParser_dataReady", (pdfData: any) => {
+                        const raw = parser.getRawTextContent();
+                        resolve(raw);
+                    });
+
+                    parser.parseBuffer(buffer);
+                } catch (e) {
+                    reject(e);
                 }
-
-                // Standard call to pdf-parse (v1.1.1)
-                return await callTarget(dataBuffer);
-            } catch (err: any) {
-                console.error("[API] PDF Parsing Failed (Standard):", err);
-                throw err;
-            }
+            });
         };
 
-        const pdfModule = require("pdf-parse");
+        // Note: pdf-parse removed due to 'ENOENT: test/data/05-versions-space.pdf' bundling error
         const mammothModule = require("mammoth");
-        const pdfParser = getParser(pdfModule);
+        // const pdfModule = require("pdf-parse"); // REMOVED
+        // const pdfParser = getParser(pdfModule); // REMOVED
+        const wordParser = getParser(mammothModule, 'extractRawText');
         const wordParser = getParser(mammothModule, 'extractRawText');
 
         const bytes = await file.arrayBuffer();
@@ -135,9 +142,8 @@ export async function POST(req: NextRequest) {
 
         try {
             if (fileNameLower.endsWith(".pdf")) {
-                const raw = await parsePDF(pdfParser, buffer);
-                console.log("[API] PDF Raw keys:", Object.keys(raw || {}));
-                text = await nuclearExtract(raw);
+                const rawText = await parsePDF(buffer);
+                text = await nuclearExtract(rawText);
                 console.log(`[API] Extracted PDF Text Length: ${text.length}`);
             } else if (fileNameLower.endsWith(".docx")) {
                 const result = await wordParser({ buffer });
