@@ -102,31 +102,24 @@ export async function POST(req: NextRequest) {
         };
 
         const parsePDF = async (buffer: Buffer): Promise<string> => {
-            return new Promise((resolve, reject) => {
-                try {
-                    // pdf2json is required at top level now to ensure bundling
-                    const parser = new PDFParser(null, 1); // 1 = raw text
+            const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
 
-                    parser.on("pdfParser_dataError", (errData: any) => {
-                        console.error("[API] pdf2json Error:", errData.parserError);
-                        reject(errData.parserError);
-                    });
+            const loadingTask = pdfjsLib.getDocument({ data: buffer });
+            const pdf = await loadingTask.promise;
 
-                    parser.on("pdfParser_dataReady", (pdfData: any) => {
-                        const raw = parser.getRawTextContent();
-                        resolve(raw);
-                    });
+            let fullText = "";
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                const page = await pdf.getPage(pageNum);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map((item: any) => item.str).join(" ");
+                fullText += pageText + "\n";
+            }
 
-                    parser.parseBuffer(buffer);
-                } catch (e) {
-                    reject(e);
-                }
-            });
+            return fullText;
         };
 
-        // Note: pdf-parse removed due to 'ENOENT: test/data/05-versions-space.pdf' bundling error
+        // Note: Using pdfjs-dist (pure JS) to avoid bundling issues with pdf-parse/pdf2json
         const mammothModule = require("mammoth");
-        const PDFParser = require("pdf2json"); // Top-level require for Bundler
         const wordParser = getParser(mammothModule, 'extractRawText');
 
         const bytes = await file.arrayBuffer();
@@ -140,8 +133,7 @@ export async function POST(req: NextRequest) {
 
         try {
             if (fileNameLower.endsWith(".pdf")) {
-                const rawText = await parsePDF(buffer);
-                text = await nuclearExtract(rawText);
+                text = await parsePDF(buffer);
                 console.log(`[API] Extracted PDF Text Length: ${text.length}`);
             } else if (fileNameLower.endsWith(".docx")) {
                 const result = await wordParser({ buffer });
