@@ -30,45 +30,59 @@ export async function POST(req: NextRequest) {
 
         const nuclearExtract = async (data: any, depth = 0): Promise<string> => {
             if (!data || depth > 12) return "";
+
+            // 1. Handle Promises explicitly first
             try {
-                if (typeof data.then === 'function') return nuclearExtract(await data, depth + 1);
-                const allKeys = Object.getOwnPropertyNames(data);
-                const pKey = allKeys.find(k => k.includes('promise') || k.includes('_capability'));
-                if (pKey && typeof data[pKey]?.then === 'function') return nuclearExtract(await data[pKey], depth + 1);
-            } catch { }
+                if (data instanceof Promise || (typeof data === 'object' && typeof data.then === 'function')) {
+                    return nuclearExtract(await data, depth + 1);
+                }
+            } catch (e) { return ""; }
 
-            const proxy = data.doc || data;
-            const numPages = proxy.numPages || proxy._pdfInfo?.numPages || (data.pdfInfo && data.pdfInfo.numPages) || 0;
+            // 2. Direct Common Keys (pdf-parse / mammoth)
+            if (typeof data.text === 'string' && data.text.length > 0) return data.text;
+            if (typeof data.content === 'string' && data.content.length > 0) return data.content;
 
-            if (numPages > 0 && typeof proxy.getPage === 'function') {
-                let text = "";
+            // 3. Handle PDF.js Proxy Object (doc)
+            // It often hides numPages in _pdfInfo or similar
+            const doc = data.doc || data;
+            const numPages = doc.numPages || doc._pdfInfo?.numPages || (data.pdfInfo?.numPages) || 0;
+
+            if (numPages > 0 && typeof doc.getPage === 'function') {
+                console.log(`[API] Found PDF Proxy with ${numPages} pages`);
+                let accumulated = "";
                 for (let i = 1; i <= numPages; i++) {
                     try {
-                        const page = await proxy.getPage(i);
+                        const page = await doc.getPage(i);
                         const content = await page.getTextContent();
-                        text += content.items.map((it: any) => it.str || "").join(" ") + "\n";
-                    } catch { }
-                }
-                if (text.trim().length > 5) return text;
-            }
-
-            if (typeof data === 'string' && data.trim().length > 5) return data;
-            const contentKeys = ['text', 'content', 'value', 'body', 'data'];
-            for (const k of contentKeys) {
-                if (data[k] && typeof data[k] === 'string' && data[k].length > 5) return data[k];
-            }
-
-            if (typeof data === 'object') {
-                const props = Object.getOwnPropertyNames(data);
-                for (const k of props) {
-                    if (['options', 'parent', 'transport', '_capability'].includes(k)) continue;
-                    const val = data[k];
-                    if (val && typeof val === 'object') {
-                        const found = await nuclearExtract(val, depth + 1);
-                        if (found) return found;
+                        const strings = content.items.map((it: any) => it.str).join(" ");
+                        accumulated += strings + "\n";
+                    } catch (err) {
+                        console.warn(`[API] Failed page ${i} extraction:`, err);
                     }
                 }
+                if (accumulated.trim().length > 0) return accumulated;
             }
+
+            // 4. Recursive Deep Search
+            if (typeof data === 'object') {
+                // Prioritize keys that look like they hold the document
+                if (data.doc) return nuclearExtract(data.doc, depth + 1);
+
+                let foundText = "";
+                const props = Object.keys(data);
+                for (const k of props) {
+                    if (['options', 'parent', 'transport', '_capability', 'metadata'].includes(k)) continue;
+
+                    const val = data[k];
+                    if (val && typeof val === 'object') {
+                        // Avoid infinite loops / circular refs
+                        const res = await nuclearExtract(val, depth + 1);
+                        if (res.length > foundText.length) foundText = res;
+                    }
+                }
+                return foundText;
+            }
+
             return "";
         };
 
