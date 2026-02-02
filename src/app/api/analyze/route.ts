@@ -49,13 +49,13 @@ export async function POST(req: NextRequest) {
                         text += content.items.map((it: any) => it.str || "").join(" ") + "\n";
                     } catch { }
                 }
-                if (text.trim().length > 50) return text;
+                if (text.trim().length > 5) return text;
             }
 
-            if (typeof data === 'string' && data.trim().length > 50) return data;
+            if (typeof data === 'string' && data.trim().length > 5) return data;
             const contentKeys = ['text', 'content', 'value', 'body', 'data'];
             for (const k of contentKeys) {
-                if (data[k] && typeof data[k] === 'string' && data[k].length > 50) return data[k];
+                if (data[k] && typeof data[k] === 'string' && data[k].length > 5) return data[k];
             }
 
             if (typeof data === 'object') {
@@ -107,7 +107,9 @@ export async function POST(req: NextRequest) {
         try {
             if (fileNameLower.endsWith(".pdf")) {
                 const raw = await parsePDF(pdfParser, buffer);
+                console.log("[API] PDF Raw keys:", Object.keys(raw || {}));
                 text = await nuclearExtract(raw);
+                console.log(`[API] Extracted PDF Text Length: ${text.length}`);
             } else if (fileNameLower.endsWith(".docx")) {
                 const result = await wordParser({ buffer });
                 text = result.value;
