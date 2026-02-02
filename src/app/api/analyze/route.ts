@@ -126,9 +126,6 @@ export async function POST(req: NextRequest) {
 
         // Note: pdf-parse removed due to 'ENOENT: test/data/05-versions-space.pdf' bundling error
         const mammothModule = require("mammoth");
-        // const pdfModule = require("pdf-parse"); // REMOVED
-        // const pdfParser = getParser(pdfModule); // REMOVED
-        const wordParser = getParser(mammothModule, 'extractRawText');
         const wordParser = getParser(mammothModule, 'extractRawText');
 
         const bytes = await file.arrayBuffer();
