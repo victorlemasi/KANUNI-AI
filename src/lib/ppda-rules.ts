@@ -78,14 +78,16 @@ const PPDA_SECTIONS: Record<string, PPDASection> = {
         severity: 'high',
         check: (text: string): boolean => {
             const hasSecurity = /tender\s+security|bid\s+bond/i.test(text);
-            // Extract percentages
-            const percentMatch = text.match(/(\d+(?:\.\d+)?)\s*%/g);
-            if (hasSecurity && percentMatch) {
-                const percentages = percentMatch.map(p => parseFloat(p));
-                // Check if any percentage exceeds 2%
-                return !percentages.some(p => p > 2);
+
+            // Refined check: only look for percentages in the context of tender security
+            // Look for a percentage within 100 characters of "tender security"
+            const securityContext = text.match(/(?:tender\s+security|bid\s+bond)[\s\S]{0,100}(\d+(?:\.\d+)?)\s*%/i);
+
+            if (hasSecurity && securityContext) {
+                const percent = parseFloat(securityContext[1]);
+                return percent <= 2;
             }
-            return true; // No security mentioned or no percentage found
+            return true; // No specific security percentage found in context
         },
         violation: 'Tender security exceeds 2% of tender value',
         recommendation: 'Reduce tender security to maximum 2% as per Section 61(2)(c)'
@@ -98,7 +100,24 @@ const PPDA_SECTIONS: Record<string, PPDASection> = {
         severity: 'critical' as const,
         check: (text: string): boolean => {
             const corruptPattern = /corrupt|bribe|kickback|collusion|collude|fraud(ulent)?|coerci/i;
-            return !corruptPattern.test(text);
+            const hasKeywords = corruptPattern.test(text);
+
+            if (!hasKeywords) return true;
+
+            // False positive prevention: Many docs have a "Corrupt and Fraudulent Practices" section definition.
+            // We only flag if it's NOT in a standard legal definition context.
+            // If it follows "definition", "prohibit", "shall not", it's likely a rule definition.
+            const standardClausePattern = /(?:definition|prohibit|not\s+engage|policy\s+on|shall\s+not|article|clause)[\s\S]{0,50}(?:corrupt|fraud|collusion)/i;
+            const isStandardClause = standardClausePattern.test(text);
+
+            // If it's a standard clause, it's not a violation itself unless accompanied by specific red flags
+            if (isStandardClause) {
+                // Look for actual evidence like "found guilty", "investigated", "convicted"
+                const evidencePattern = /found\s+guilty|investigat(ed|ion)|convict(ed|ion)|irregularit(y|ies)|overpriced/i;
+                return !evidencePattern.test(text);
+            }
+
+            return false; // Flagged if keywords present and not clearly a standard clause
         },
         violation: 'Evidence of corrupt, collusive, or fraudulent practices',
         recommendation: 'Report to relevant authorities immediately. Section 66 prohibits all corrupt practices'
