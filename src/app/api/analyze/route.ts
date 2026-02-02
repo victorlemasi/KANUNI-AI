@@ -103,9 +103,15 @@ export async function POST(req: NextRequest) {
 
         const parsePDF = async (parser: any, dataBuffer: Buffer) => {
             try {
+                console.log(`[API] parsePDF: Input Buffer Size: ${dataBuffer?.length}, IsBuffer: ${Buffer.isBuffer(dataBuffer)}`);
                 const callTarget = parser.parse || parser.pdf || parser;
+                console.log(`[API] parsePDF: Parser Type: ${typeof parser}, CallTarget Type: ${typeof callTarget}`);
+
+                if (!dataBuffer || dataBuffer.length === 0) {
+                    throw new Error("Buffer is empty or null before pdf-parse");
+                }
+
                 // Standard call to pdf-parse (v1.1.1)
-                // It returns a Promise that resolves to { text, numpages, info, ... }
                 return await callTarget(dataBuffer);
             } catch (err: any) {
                 console.error("[API] PDF Parsing Failed (Standard):", err);
@@ -120,6 +126,8 @@ export async function POST(req: NextRequest) {
 
         const bytes = await file.arrayBuffer();
         let buffer: Buffer | null = Buffer.from(bytes);
+        console.log(`[API] POST: File ${file.name} converted to buffer. Bytes: ${bytes.byteLength}, Buffer Size: ${buffer.length}`);
+
         let text = "";
         let imageMetadata = null;
 
