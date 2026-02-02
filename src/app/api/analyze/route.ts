@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
         const parsePDF = async (buffer: Buffer): Promise<string> => {
             return new Promise((resolve, reject) => {
                 try {
-                    const PDFParser = require("pdf2json");
+                    // pdf2json is required at top level now to ensure bundling
                     const parser = new PDFParser(null, 1); // 1 = raw text
 
                     parser.on("pdfParser_dataError", (errData: any) => {
@@ -126,6 +126,7 @@ export async function POST(req: NextRequest) {
 
         // Note: pdf-parse removed due to 'ENOENT: test/data/05-versions-space.pdf' bundling error
         const mammothModule = require("mammoth");
+        const PDFParser = require("pdf2json"); // Top-level require for Bundler
         const wordParser = getParser(mammothModule, 'extractRawText');
 
         const bytes = await file.arrayBuffer();
