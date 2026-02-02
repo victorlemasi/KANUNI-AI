@@ -29,14 +29,21 @@ export async function POST(req: NextRequest) {
         };
 
         const nuclearExtract = async (data: any, depth = 0): Promise<string> => {
-            if (!data || depth > 12) return "";
+            if (!data) return "";
+            if (depth > 12) {
+                console.log(`[nuclearExtract] Depth limit reached at ${depth}`);
+                return "";
+            }
 
             // 1. Handle Promises explicitly first
             try {
                 if (data instanceof Promise || (typeof data === 'object' && typeof data.then === 'function')) {
                     return nuclearExtract(await data, depth + 1);
                 }
-            } catch (e) { return ""; }
+            } catch (e) {
+                console.error(`[nuclearExtract] Promise failed:`, e);
+                return "";
+            }
 
             // 2. Direct Common Keys (pdf-parse / mammoth)
             if (typeof data.text === 'string' && data.text.length > 0) return data.text;
@@ -45,6 +52,14 @@ export async function POST(req: NextRequest) {
             // 3. Handle PDF.js Proxy Object (doc)
             // It often hides numPages in _pdfInfo or similar
             const doc = data.doc || data;
+
+            // LOGGING PROBE
+            if (depth < 3) {
+                const keys = Object.keys(doc || {});
+                console.log(`[nuclearExtract:${depth}] Inspecting object. Keys: [${keys.slice(0, 5).join(', ')}...]`);
+                console.log(`[nuclearExtract:${depth}] .numPages: ${doc?.numPages}, ._pdfInfo: ${!!doc?._pdfInfo}`);
+            }
+
             const numPages = doc.numPages || doc._pdfInfo?.numPages || (data.pdfInfo?.numPages) || 0;
 
             if (numPages > 0 && typeof doc.getPage === 'function') {
