@@ -50,6 +50,9 @@ export default function FileUpload() {
                             riskLevel: extended?.riskScore > 70 ? 'CRITICAL' : extended?.riskScore > 40 ? 'MODERATE' : prev.riskLevel,
                             topConcern: extended?.topConcern || prev.topConcern,
                             suggestions: extended?.suggestions || prev.suggestions,
+                            citations: extended?.citations || [],
+                            redFlags: extended?.redFlags || [],
+                            confidenceScore: extended?.confidenceScore || 0,
                         }));
                         setModelStatus('');
                         setIsUploading(false);
@@ -406,6 +409,39 @@ AUDIT TRAIL:
                                     </div>
                                 </div>
                             )}
+                            {/* NEW: Red Flags Section */}
+                            {result.redFlags && result.redFlags.length > 0 && (
+                                <div className="mb-4 space-y-2">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <AlertCircle className="w-4 h-4 text-error-500" />
+                                        <h4 className="text-[10px] font-black text-error-500 uppercase tracking-[0.3em]">Forensic Red Flags</h4>
+                                    </div>
+                                    {result.redFlags.map((flag: string, i: number) => (
+                                        <div key={i} className="p-3 glass rounded-xl border-error-500/20 bg-error-500/5 text-[11px] font-bold text-error-200 flex items-center gap-3">
+                                            <div className="w-2 h-2 rounded-full bg-error-500 animate-pulse" />
+                                            {flag}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* NEW: Citations Section */}
+                            {result.citations && result.citations.length > 0 && (
+                                <div className="mb-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <FileText className="w-4 h-4 text-primary-400" />
+                                        <h4 className="text-[10px] font-black text-primary-400 uppercase tracking-[0.3em]">Regulatory Citations</h4>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {result.citations.map((cite: string, i: number) => (
+                                            <div key={i} className="p-3 glass rounded-xl border-primary-500/10 bg-primary-500/5 text-[10px] text-neutral-300 font-mono">
+                                                {cite}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="flex items-center gap-2 mb-2">
                                 <AlertCircle className="w-4 h-4 text-error-500" />
                                 <h4 className="text-[10px] font-black text-error-500 uppercase tracking-[0.3em]">Integrity Alerts & Anomalies</h4>
