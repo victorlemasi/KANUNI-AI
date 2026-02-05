@@ -27,6 +27,7 @@ export default function FileUpload() {
                         break;
                     case 'progress':
                         if (p) setProgress(Math.round(p));
+                        if (message) setModelStatus(message);
                         break;
                     case 'analyzing':
                         setModelStatus(message);
@@ -39,10 +40,16 @@ export default function FileUpload() {
                         break;
                     case 'complete':
                         // Merge synthesis into result
+                        const { output: opinion, extended } = e.data;
+
                         setResult((prev: any) => ({
                             ...prev,
-                            auditOpinion: output,
-                            // Enhance suggestions with AI output if needed
+                            auditOpinion: opinion,
+                            // Enrich existing rule-based stats with Llama 3's deeper analysis if available
+                            riskScore: extended?.riskScore ? Math.max(prev.riskScore, extended.riskScore) : prev.riskScore,
+                            riskLevel: extended?.riskScore > 70 ? 'CRITICAL' : extended?.riskScore > 40 ? 'MODERATE' : prev.riskLevel,
+                            topConcern: extended?.topConcern || prev.topConcern,
+                            suggestions: extended?.suggestions || prev.suggestions,
                         }));
                         setModelStatus('');
                         setIsUploading(false);

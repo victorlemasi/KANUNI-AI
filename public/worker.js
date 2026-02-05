@@ -1,110 +1,139 @@
 
-import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+import * as webllm from "https://esm.run/@mlc-ai/web-llm";
 
-// Skip local checks since we are running in browser via CDN
-env.allowLocalModels = false;
-env.useBrowserCache = true;
+/*************************************************************************
+ * KANUNI AI - Client-Side Forensic Engine (WebLLM)
+ * -----------------------------------------------------------------------
+ * Runs Llama-3-8B directly in browser. ZERO Server CPU. 100% Privacy.
+ *************************************************************************/
 
-class AnalysisPipeline {
-    static task = 'zero-shot-classification';
-    static model = 'Xenova/bart-large-mnli';
+const SELECTED_MODEL = "Llama-3-8B-Instruct-q4f32_1-MLC";
 
-    static instance = null;
+let engine = null;
+let pipelinePromise = null;
 
-    static async getInstance(progress_callback = null) {
-        if (this.instance === null) {
-            this.instance = await pipeline(this.task, this.model, {
-                progress_callback,
-                quantized: true
-            });
+// Initialize the engine once
+async function getEngine(progressCallback) {
+    if (engine) return engine;
+
+    // Create new engine
+    engine = new webllm.MLCEngine();
+
+    // Set reload handler to track progress
+    engine.setInitProgressCallback((report) => {
+        // Map string progress to number for UI
+        let percent = 0;
+        const msg = report.text;
+
+        // Simple heuristic for progress bar
+        if (msg.includes("Cache found")) percent = 10;
+        else if (msg.includes("Fetching param section")) {
+            // Extract X/Y if possible or just bump
+            percent = 30;
+        } else if (msg.includes("Loading model from cache")) {
+            percent = 50;
+        } else if (msg.includes("Finish loading")) {
+            percent = 100;
         }
-        return this.instance;
+
+        progressCallback({
+            status: 'initiate', // Use 'initiate' to show loading bar in UI
+            message: `[Llama-3] ${msg}`,
+            progress: percent
+        });
+    });
+
+    try {
+        await engine.reload(SELECTED_MODEL);
+    } catch (err) {
+        console.error("Model load failed", err);
+        throw err;
     }
+
+    return engine;
 }
 
-class SynthesisPipeline {
-    static task = 'summarization';
-    // Meta's BART model (Large version for better accuracy)
-    static model = 'Xenova/bart-large-cnn';
 
-    static instance = null;
-
-    static async getInstance(progress_callback = null) {
-        if (this.instance === null) {
-            // Load the Meta model
-            this.instance = await pipeline(this.task, this.model, {
-                progress_callback,
-                quantized: true // Ensure 8-bit quantization for lower memory on client
-            });
-        }
-        return this.instance;
-    }
-}
-
-// Listen for messages from the main thread
 self.addEventListener('message', async (event) => {
     const { text, type } = event.data;
 
-    try {
-        if (type === 'analyze') {
-            // 1. Run Classification (The 3 Pillars)
-            self.postMessage({ status: 'initiate', message: 'Loading Classifier (~350MB)...' });
+    if (type === 'analyze') {
+        try {
+            self.postMessage({ status: 'initiate', message: 'Booting Neural Engine (Llama 3)...', progress: 5 });
 
-            const classifier = await AnalysisPipeline.getInstance((data) => {
-                self.postMessage({ status: 'progress', ...data });
+            const eng = await getEngine((data) => self.postMessage(data));
+
+            self.postMessage({ status: 'analyzing', message: 'Llama 3 is reading the document...' });
+
+            // 1. Construct the Prompt
+            const prompt = `
+            You are KANUNI AI, a high-precision forensic auditor.
+            Analyze the following document text for governance, risk, and compliance issues.
+            
+            Focus on these 3 pillars:
+            1. Decision Intelligence (Is the data clear for decision making?)
+            2. Compliance Automation (Does it follow standard formats/rules?)
+            3. HITL Governance (Does it need human review?)
+
+            Output a JSON object ONLY with this structure:
+            {
+                "pillarAlignment": {
+                    "decisionIntelligence": 0.0 to 1.0,
+                    "complianceAutomation": 0.0 to 1.0,
+                    "hitlGovernance": 0.0 to 1.0
+                },
+                "auditOpinion": "A 1-sentence professional audit opinion.",
+                "riskScore": 0 to 100,
+                "topConcern": "Short phrase describing top risk",
+                "suggestions": ["Suggestion 1", "Suggestion 2", "Suggestion 3"]
+            }
+
+            DOCUMENT TEXT:
+            "${text.slice(0, 6000)}" 
+            `;
+            // Truncate to avoid context overflow if huge, though Llama 3 has 8k context.
+
+            const reply = await eng.chat.completions.create({
+                messages: [{ role: "user", content: prompt }],
+                response_format: { type: "json_object" }, // Force JSON
+                temperature: 0.1, // Low temp for factual audit
             });
 
-            self.postMessage({ status: 'analyzing', message: 'Analyzing Governance Pillars...' });
+            const resultRaw = reply.choices[0].message.content;
+            let result;
+            try {
+                result = JSON.parse(resultRaw);
+            } catch (e) {
+                // Fallback if JSON parse fails
+                console.warn("JSON Parse failed, using fallback", e);
+                result = {
+                    pillarAlignment: { decisionIntelligence: 0.5, complianceAutomation: 0.5, hitlGovernance: 0.5 },
+                    auditOpinion: "Analysis completed but structured output was malformed. Review manually.",
+                    riskScore: 50,
+                    topConcern: "Manual Review Required",
+                    suggestions: ["Verify document integrity", "Check format compliance"]
+                };
+            }
 
-            const labels = ['Decision Intelligence', 'Compliance Automation', 'HITL Governance'];
-            const classificationResult = await classifier(text, labels, { multi_label: true });
-
-            // Normalize scores to object map
-            const pillarScores = {};
-            classificationResult.labels.forEach((label, index) => {
-                // Convert simple key name for UI (camelCase)
-                const key = label === 'Decision Intelligence' ? 'decisionIntelligence' :
-                    label === 'Compliance Automation' ? 'complianceAutomation' :
-                        'hitlGovernance';
-                pillarScores[key] = classificationResult.scores[index];
-            });
-
-            // Send partial result based on classification
+            // Remap for UI compatibility
             self.postMessage({
                 status: 'classification_complete',
-                output: pillarScores
-            });
-
-            // 2. Run Synthesis (The Meta Model)
-            self.postMessage({ status: 'initiate', message: 'Loading Generator (~350MB)...' });
-
-            const synthesizer = await SynthesisPipeline.getInstance((data) => {
-                self.postMessage({
-                    status: 'progress',
-                    ...data
-                });
-            });
-
-            self.postMessage({ status: 'analyzing', message: 'generating audit opinion...' });
-
-            // Generate the opinion/summary
-            // We treat the text as input for the BART model
-            const output = await synthesizer(text, {
-                max_new_tokens: 150,
-                temperature: 0.7,
-                do_sample: true,
-                top_k: 50,
+                output: result.pillarAlignment
             });
 
             self.postMessage({
                 status: 'complete',
-                output: output[0].summary_text
+                output: result.auditOpinion,
+                // We can send extra data if we modify FileUpload.tsx to accept it, 
+                // but for now we stick to the existing contract: 
+                // status: 'complete' -> output is the opinion.
+                // We might need to send the other fields too.
+                extended: result
             });
+
+        } catch (error) {
+            console.error(error);
+            self.postMessage({ status: 'error', error: error.message || "Model Inference Failed" });
         }
-    } catch (error) {
-        self.postMessage({
-            status: 'error',
-            error: error.message
-        });
     }
 });
