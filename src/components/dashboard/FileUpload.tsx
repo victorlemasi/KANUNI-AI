@@ -68,8 +68,8 @@ export default function FileUpload() {
                             // Sync Audit Ledger
                             auditTrail: {
                                 ...prev.auditTrail,
-                                engine: "LLAMA-3-FORENSIC",
-                                model: "Llama-3-8B (Direct-Edge)",
+                                engine: extended?.engine || "LLAMA-3-FORENSIC",
+                                model: extended?.model || (extended?.engine === 'BERT-64MB-WASM' ? "Legacy BERT Engine" : "Llama-3-8B (Direct-Edge)"),
                                 confidence: extended?.confidenceScore || prev.auditTrail?.confidence || 0.95
                             }
                         }));
