@@ -96,7 +96,7 @@ export async function analyzeDocument(file: File, text: string, mode: 'procureme
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,
-        text: text, // Critical: Client needs this for BART
+        text: text, // Critical: Client needs this for Llama-3 reasoning
         findings: findings,
         riskScore: Math.round(riskScore),
         riskLevel: riskScore > 70 ? 'CRITICAL' : riskScore > 40 ? 'MODERATE' : 'LOW',
@@ -107,7 +107,7 @@ export async function analyzeDocument(file: File, text: string, mode: 'procureme
         auditTrail: {
             step: 'Analysis Complete',
             status: 'success',
-            model: 'PPDA-Regex-Engine + Meta-BART (Client)',
+            model: 'PPDA-Regex + Llama-3-8B (Direct-Edge)',
             regulatoryContext: 'PPDA Act 2015 (Kenya)',
             confidence: 0.95,
             engine: 'HYBRID-EDGE'

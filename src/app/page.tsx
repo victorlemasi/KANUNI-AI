@@ -30,7 +30,7 @@ export default function Home() {
             </div>
             <p className="text-sm text-neutral-400 font-medium max-w-md leading-relaxed">
               Advanced Forensic Intelligence for Public Procurement & Governance.
-              Powered by <span className="text-white font-bold">MobileBERT-V2</span> with direct PPDA Act regulatory mapping.
+              Powered by <span className="text-white font-bold">Llama-3-8B</span> for Deep Forensic Reasoning.
             </p>
           </div>
 
@@ -56,7 +56,7 @@ export default function Home() {
           <div className="flex items-center gap-10">
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Engine</span>
-              <span className="text-[11px] font-bold text-white">BERT-Forensic-Q</span>
+              <span className="text-[11px] font-bold text-white uppercase tracking-tighter">Llama-3 + BERT</span>
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Compliance</span>

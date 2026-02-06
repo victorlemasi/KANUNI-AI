@@ -10,7 +10,7 @@ export default function FileUpload() {
     const [result, setResult] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
     // State removed: worker ref is sufficient
-    const [modelStatus, setModelStatus] = useState<string>('');
+    const [modelStatus, setModelStatus] = useState<string>('Initializing Llama-3 & BERT Forensic Pipeline...');
     const [progress, setProgress] = useState<number>(0);
 
     // Initialize Worker
@@ -269,7 +269,7 @@ AUDIT TRAIL:
                         <div className="text-center space-y-2">
                             <h4 className="text-sm font-black text-white uppercase tracking-[0.5em] animate-pulse">Running {analysisType} Diagnostics</h4>
                             <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">
-                                {modelStatus || "Applying BERT classification & PPDA legislative mapping..."}
+                                {modelStatus || "Initializing Llama-3 Forensic reasoning..."}
                                 {progress > 0 && ` (${progress}%)`}
                             </p>
                         </div>
