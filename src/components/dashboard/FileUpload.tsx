@@ -64,6 +64,14 @@ export default function FileUpload() {
                             redFlags: extended?.redFlags || [],
                             confidenceScore: extended?.confidenceScore || 0,
                             isAISourced: !!extended,
+
+                            // Sync Audit Ledger
+                            auditTrail: {
+                                ...prev.auditTrail,
+                                engine: "LLAMA-3-FORENSIC",
+                                model: "Llama-3-8B (Direct-Edge)",
+                                confidence: extended?.confidenceScore || prev.auditTrail?.confidence || 0.95
+                            }
                         }));
                         setModelStatus('');
                         setIsUploading(false);
@@ -329,7 +337,15 @@ AUDIT TRAIL:
                         </div>
 
                         <div className="glass-card flex-1">
-                            <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-2">Primary Regulatory Concern</p>
+                            <div className="flex items-center justify-between mb-2">
+                                <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Primary Regulatory Concern</p>
+                                {!result.isAISourced && isUploading && (
+                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent-500/10 border border-accent-500/20 animate-pulse">
+                                        <div className="w-1 h-1 rounded-full bg-accent-500" />
+                                        <span className="text-[7px] font-black text-accent-500 uppercase tracking-widest">Deep Reasoning Pass Pending...</span>
+                                    </div>
+                                )}
+                            </div>
                             <h4 className="text-xl font-bold accent-gradient-text uppercase leading-tight line-clamp-2">
                                 {result.topConcern}
                             </h4>

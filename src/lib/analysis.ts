@@ -110,7 +110,7 @@ export async function analyzeDocument(file: File, text: string, mode: 'procureme
             model: 'PPDA-Regex + Llama-3-8B (Direct-Edge)',
             regulatoryContext: 'PPDA Act 2015 (Kenya)',
             confidence: 0.95,
-            engine: 'HYBRID-EDGE'
+            engine: 'AI-PIPELINE-INIT'
         },
         alerts: findings.filter((f: any) => f.severity === 'critical').map((f: any) => f.label),
         timestamp: new Date().toISOString()
