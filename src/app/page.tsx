@@ -56,7 +56,7 @@ export default function Home() {
           <div className="flex items-center gap-10">
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Engine</span>
-              <span className="text-[11px] font-bold text-white uppercase tracking-tighter">Llama-3 + BERT</span>
+              <span className="text-[11px] font-bold text-white uppercase tracking-tighter">Llama-3-8B Reasoning</span>
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Compliance</span>

@@ -4,11 +4,11 @@
 
 ## 🚀 Core Modules
 
-The platform features four specialized analysis engines powered by BERT (`mobilebert-uncased-mnli`):
+The platform features four specialized analysis engines powered by **Llama-3-8B-Instruct** for deep forensic reasoning:
 
 ### 1. 🏢 Standard Procurement
 - **Goal**: General risk assessment for institutional documents.
-- **Checks**: PFM Act compliance, Vendor concentration, Fraud indicators.
+- **Checks**: PFM Act & PPDA compliance, Vendor concentration, Fraud indicators.
 
 ### 2. ⚖️ Contract Review
 - **Goal**: Automate legal risk detection in agreements.
@@ -29,8 +29,8 @@ The platform features four specialized analysis engines powered by BERT (`mobile
 ## 🛠️ Technical Stack
 - **Framework**: Next.js 15 (App Router)
 - **Styling**: Tailwind CSS + Glassmorphism Design System
-- **AI Engine**: @xenova/transformers (Client/Server hybrid)
-- **Persistence**: LocalStorage (Institutional Memory) & File System (Node.js)
+- **AI Engine**: Llama-3-8B-Instruct via WebLLM (Client-Side Forensic Intelligence)
+- **Persistence**: LocalStorage (Institutional Memory) & File System (Node.js) via Prisma/SQLite
 
 ## 📦 Installation
 ```bash

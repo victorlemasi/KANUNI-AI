@@ -213,14 +213,14 @@ export async function processProcurementDocument(formData: FormData) {
 
     console.log(`[SERVER] Content extracted (${text.length} chars). Starting AI analysis...`);
 
-    // 2. Perform BERT Analysis
+    // 2. Perform Forensic Analysis
     const analysis = await analyzeDocument(file, text, analysisType);
     console.log("[SERVER] Milestone: AI Analysis complete successfully.");
 
     const finalResult = {
       textPreview: text.substring(0, 500),
       imageMetadata,
-      reportSummary: `KANUNI AI ${imageMetadata ? 'Image' : 'Document'} Report for ${file.name}. Risk Level: ${analysis.riskLevel} (${analysis.riskScore}%). Primary Concern: ${analysis.topConcern}.`,
+      reportSummary: `KANUNI AI Forensic Report for ${file.name}. Risk Level: ${analysis.riskLevel} (${analysis.riskScore}%). Primary Concern: ${analysis.topConcern}.`,
       ...analysis
     };
 
