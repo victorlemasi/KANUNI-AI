@@ -76,6 +76,11 @@ self.addEventListener('message', async (event) => {
             2.  **Compliance Automation**: Does it adhere to standard legal formats?
             3.  **HITL Governance**: Is human review strictly necessary due to ambiguity?
 
+            [STRICT FORENSIC GUIDELINES]
+            - **NO GENERIC ADVICE**: Do NOT use phrases like "Award must be based on lowest price" or "Report to authorities".
+            - **EVIDENCE ONLY**: Every finding must reference data *actually found* in the text. (e.g., "Invoice #123 matches Vendor B but is dated before the contract").
+            - **CRITICAL ALERTS**: If you find specific fraud or corruption markers, list them in the "alerts" array.
+
             [OUTPUT FORMAT]
             You must output a VALID JSON object inside a code block.
             
@@ -87,13 +92,14 @@ self.addEventListener('message', async (event) => {
                     "complianceAutomation": 0.4,
                     "hitlGovernance": 0.9
                 },
-                "auditOpinion": "The document ...",
+                "auditOpinion": "Specific forensic conclusion...",
                 "riskScore": 85,
                 "riskLevel": "CRITICAL",
-                "topConcern": "Invalid Execution",
-                "suggestions": ["Obtain wet signature", "Verify vendor tax compliance"],
-                "citations": ["[Section 45(2) PPDA Act] Missing Tender Security", "[Clause 12] Ambiguous Liability Cap"],
-                "redFlags": ["Round number bias detected ($50,000)", "No clear termination date"],
+                "topConcern": "Exact issue found in text (e.g., Date Mismatch in Clause 4)",
+                "suggestions": ["Specific action for this document", "Another specific action"],
+                "citations": ["[Section X] Contextual legal breach"],
+                "redFlags": ["Specific anomaly found", "Another data-driven flag"],
+                "alerts": ["SPECIFIC ANOMALY: Description of evidence"],
                 "confidenceScore": 0.92
             }
             \`\`\`
