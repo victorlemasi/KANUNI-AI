@@ -413,7 +413,16 @@ AUDIT TRAIL:
                     </div>
 
                     {/* ALERTS & AUDIT TRAIL */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative overflow-hidden">
+                        {!result.isAISourced && isUploading && (
+                            <div className="absolute inset-0 z-20 bg-black/40 backdrop-blur-[4px] flex flex-col items-center justify-center p-6 text-center space-y-3">
+                                <BrainCircuit className="w-12 h-12 text-primary-500 animate-pulse" />
+                                <p className="text-[10px] font-black text-white uppercase tracking-widest leading-relaxed">
+                                    Deep Reasoning Pass in Progress...<br />
+                                    <span className="text-primary-400">Verifying Policy Alignment via Llama-3</span>
+                                </p>
+                            </div>
+                        )}
                         <div className="md:col-span-2 glass-card !bg-white/[0.01] space-y-4">
                             {/* AI Suggestions */}
                             {result.suggestions && result.suggestions.length > 0 && (
