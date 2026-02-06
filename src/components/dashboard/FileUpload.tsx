@@ -45,14 +45,15 @@ export default function FileUpload() {
                         setResult((prev: any) => ({
                             ...prev,
                             auditOpinion: opinion,
-                            // Enrich existing rule-based stats with Llama 3's deeper analysis if available
-                            riskScore: extended?.riskScore ? Math.max(prev.riskScore, extended.riskScore) : prev.riskScore,
-                            riskLevel: extended?.riskScore > 70 ? 'CRITICAL' : extended?.riskScore > 40 ? 'MODERATE' : prev.riskLevel,
+                            // PRIORITIZE AI: Use extended results exclusively if they exist
+                            riskScore: extended?.riskScore ?? prev.riskScore,
+                            riskLevel: extended?.riskLevel || (extended?.riskScore > 70 ? 'CRITICAL' : extended?.riskScore > 40 ? 'MODERATE' : prev.riskLevel),
                             topConcern: extended?.topConcern || prev.topConcern,
                             suggestions: extended?.suggestions || prev.suggestions,
                             citations: extended?.citations || [],
                             redFlags: extended?.redFlags || [],
                             confidenceScore: extended?.confidenceScore || 0,
+                            isAISourced: !!extended, // Flag for UI transparency
                         }));
                         setModelStatus('');
                         setIsUploading(false);
@@ -469,7 +470,9 @@ AUDIT TRAIL:
                             <div className="space-y-2">
                                 <div className="flex justify-between">
                                     <span className="text-neutral-600">ENGINE_SIG</span>
-                                    <span className="text-white px-2 py-0.5 glass rounded bg-primary-500/10">{result.auditTrail?.engine || 'FORENSIC-Q'}</span>
+                                    <span className={`px-2 py-0.5 glass rounded font-black tracking-tighter ${result.isAISourced ? 'bg-primary-500/20 text-primary-400' : 'bg-neutral-500/20 text-neutral-400'}`}>
+                                        {result.isAISourced ? 'LLAMA-3-FORENSIC' : (result.auditTrail?.engine || 'RULE-ENGINE')}
+                                    </span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-neutral-600">COMPLIANCE</span>

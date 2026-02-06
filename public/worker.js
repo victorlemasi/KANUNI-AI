@@ -89,6 +89,7 @@ self.addEventListener('message', async (event) => {
                 },
                 "auditOpinion": "The document ...",
                 "riskScore": 85,
+                "riskLevel": "CRITICAL",
                 "topConcern": "Invalid Execution",
                 "suggestions": ["Obtain wet signature", "Verify vendor tax compliance"],
                 "citations": ["[Section 45(2) PPDA Act] Missing Tender Security", "[Clause 12] Ambiguous Liability Cap"],
