@@ -7,7 +7,7 @@ import * as webllm from "https://esm.run/@mlc-ai/web-llm";
  * Runs Llama-3-8B directly in browser. ZERO Server CPU. 100% Privacy.
  *************************************************************************/
 
-const SELECTED_MODEL = "Llama-3-8B-Instruct-q4f32_1-MLC";
+const SELECTED_MODEL = "Llama-3-8B-Instruct-q4f16_1-MLC";
 
 let engine = null;
 

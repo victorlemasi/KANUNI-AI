@@ -340,13 +340,18 @@ AUDIT TRAIL:
                             <div className="flex items-center justify-between mb-2">
                                 <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Primary Regulatory Concern</p>
                                 {!result.isAISourced && isUploading && (
-                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent-500/10 border border-accent-500/20 animate-pulse">
-                                        <div className="w-1 h-1 rounded-full bg-accent-500" />
-                                        <span className="text-[7px] font-black text-accent-500 uppercase tracking-widest">Deep Reasoning Pass Pending...</span>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent-500/10 border border-accent-500/20 animate-pulse">
+                                            <div className="w-1 h-1 rounded-full bg-accent-500" />
+                                            <span className="text-[7px] font-black text-accent-500 uppercase tracking-widest">Deep Reasoning Pass Pending...</span>
+                                        </div>
+                                        <div className="text-[8px] font-bold text-neutral-500 uppercase tracking-wider">
+                                            {modelStatus} {progress > 0 && `(${progress}%)`}
+                                        </div>
                                     </div>
                                 )}
                             </div>
-                            <h4 className="text-xl font-bold accent-gradient-text uppercase leading-tight line-clamp-2">
+                            <h4 className={`text-xl font-bold accent-gradient-text uppercase leading-tight line-clamp-2 transition-all duration-500 ${!result.isAISourced && isUploading ? 'blur-[4px] opacity-40' : ''}`}>
                                 {result.topConcern}
                             </h4>
                         </div>
@@ -383,7 +388,15 @@ AUDIT TRAIL:
                         </div>
 
                         {/* Direct Suggestions */}
-                        <div className="glass-card bg-accent-500/[0.02] border-accent-500/10 space-y-6">
+                        <div className="glass-card bg-accent-500/[0.02] border-accent-500/10 space-y-6 relative overflow-hidden">
+                            {!result.isAISourced && isUploading && (
+                                <div className="absolute inset-0 z-20 bg-black/60 backdrop-blur-[8px] flex flex-col items-center justify-center p-6 text-center space-y-3">
+                                    <Loader2 className="w-8 h-8 text-accent-500 animate-spin" />
+                                    <p className="text-[10px] font-black text-white uppercase tracking-widest leading-relaxed">
+                                        Synthesizing Strategic Insights<br />via Llama-3...
+                                    </p>
+                                </div>
+                            )}
                             <div className="flex items-center justify-between">
                                 <h4 className="text-xs font-black text-white uppercase tracking-widest">AI Strategic Suggestions</h4>
                                 <CheckCircle2 className="w-4 h-4 text-accent-500" />
