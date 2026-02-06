@@ -515,7 +515,7 @@ AUDIT TRAIL:
                                 <span>Audit Ledger</span>
                                 <FileText className="w-3 h-3" />
                             </div>
-                            <div className="space-y-2">
+                            <div className={`space-y-2 transition-all duration-500 ${!result.isAISourced && isUploading ? 'blur-sm opacity-30 pointer-events-none' : ''}`}>
                                 <div className="flex justify-between">
                                     <span className="text-neutral-600">ENGINE_SIG</span>
                                     <span className={`px-2 py-0.5 glass rounded font-black tracking-tighter ${result.isAISourced ? 'bg-primary-500/20 text-primary-400' : 'bg-neutral-500/20 text-neutral-400'}`}>
@@ -535,12 +535,12 @@ AUDIT TRAIL:
                                     <span className="text-neutral-600">CONFIDENCE</span>
                                     <span className="text-white">{(result.auditTrail?.confidence * 100 || 0).toFixed(1)}%</span>
                                 </div>
-                                <div className="pt-2 flex justify-center">
-                                    <div className="px-4 py-1.5 glass rounded-full bg-success-500/5 border-success-500/20 text-success-500 font-black tracking-[0.2em] text-[8px]">
-                                        SYSTEM_VERIFIED_AUTHENTIC
-                                    </div>
-                                </div>
                             </div>
+                            {!result.isAISourced && isUploading && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px] rounded-xl">
+                                    <div className="text-[8px] font-black text-white uppercase tracking-[0.3em] animate-pulse">Neural Verification...</div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
