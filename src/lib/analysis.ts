@@ -107,10 +107,10 @@ export async function analyzeDocument(file: File, text: string, mode: 'procureme
         auditTrail: {
             step: 'Analysis Complete',
             status: 'success',
-            model: 'PPDA-Regex + Llama-3-8B (Direct-Edge)',
+            model: 'Llama-3-8B (Direct-Edge)',
             regulatoryContext: 'PPDA Act 2015 & Regulations 2020',
             confidence: 0.95,
-            engine: 'AI-PIPELINE-INIT'
+            engine: 'LLAMA-3-PIPELINE'
         },
         alerts: findings.filter((f: any) => f.severity === 'critical').map((f: any) => f.label),
         timestamp: new Date().toISOString()

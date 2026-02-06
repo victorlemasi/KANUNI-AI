@@ -10,7 +10,7 @@ export default function FileUpload() {
     const [result, setResult] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
     // State removed: worker ref is sufficient
-    const [modelStatus, setModelStatus] = useState<string>('Initializing Llama-3 & BERT Forensic Pipeline...');
+    const [modelStatus, setModelStatus] = useState<string>('Initializing Llama-3 Forensic Pipeline...');
     const [progress, setProgress] = useState<number>(0);
 
     // Initialize Worker
@@ -324,9 +324,19 @@ AUDIT TRAIL:
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Composite Risk Level</p>
-                                    <div className={`text-4xl font-black tracking-tighter ${result.riskScore > 50 ? 'text-error-500' : 'text-success-500'}`}>
-                                        {result.riskLevel} <span className="text-xl opacity-40">({result.riskScore}%)</span>
-                                    </div>
+                                    {!result.isAISourced && isUploading ? (
+                                        <div className="flex flex-col gap-2 mt-1">
+                                            <div className="h-8 bg-white/5 rounded-lg w-32 animate-pulse" />
+                                            <div className="text-[8px] font-black text-accent-500 animate-pulse tracking-widest">AI CALIBRATING RISK...</div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-4xl font-black tracking-tighter transition-all duration-500">
+                                            <span className={result.riskScore > 50 ? 'text-error-500' : 'text-success-500'}>
+                                                {result.riskLevel}
+                                            </span>
+                                            <span className="text-xl opacity-40 ml-2">({result.riskScore}%)</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div className="hidden md:block">
@@ -351,9 +361,19 @@ AUDIT TRAIL:
                                     </div>
                                 )}
                             </div>
-                            <h4 className={`text-xl font-bold accent-gradient-text uppercase leading-tight line-clamp-2 transition-all duration-500 ${!result.isAISourced && isUploading ? 'blur-[4px] opacity-40' : ''}`}>
-                                {result.topConcern}
-                            </h4>
+                            <div className="space-y-2">
+                                {!result.isAISourced && isUploading ? (
+                                    <div className="space-y-2 py-2">
+                                        <div className="h-6 bg-accent-500/10 rounded w-full animate-pulse" />
+                                        <div className="h-4 bg-accent-500/5 rounded w-2/3 animate-pulse" />
+                                        <div className="text-[7px] font-black text-accent-400 uppercase tracking-widest mt-2 animate-pulse">Running Neural Inference...</div>
+                                    </div>
+                                ) : (
+                                    <h4 className="text-xl font-bold accent-gradient-text uppercase leading-tight line-clamp-2 transition-all duration-500">
+                                        {result.topConcern}
+                                    </h4>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -374,12 +394,17 @@ AUDIT TRAIL:
                                     <div key={p.name} className="space-y-2">
                                         <div className="flex justify-between text-[10px] font-black uppercase tracking-wider">
                                             <span className="text-neutral-500">{p.name}</span>
-                                            <span className="text-white">{(p.val * 100).toFixed(0)}%</span>
+                                            <span className="text-white">
+                                                {!result.isAISourced && isUploading ? '...' : `${(p.val * 100).toFixed(0)}%`}
+                                            </span>
                                         </div>
-                                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden relative">
+                                            {!result.isAISourced && isUploading && (
+                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent animate-[shimmer_1.5s_infinite]" />
+                                            )}
                                             <div
-                                                className={`h-full ${p.color} transition-all duration-1000 shadow-[0_0_15px_rgba(255,255,255,0.1)]`}
-                                                style={{ width: `${p.val * 100}%` }}
+                                                className={`h-full ${p.color} transition-all duration-1000 shadow-[0_0_15px_rgba(255,255,255,0.1)] ${!result.isAISourced && isUploading ? 'w-0' : ''}`}
+                                                style={{ width: `${!result.isAISourced && isUploading ? 0 : p.val * 100}%` }}
                                             />
                                         </div>
                                     </div>
@@ -402,12 +427,18 @@ AUDIT TRAIL:
                                 <CheckCircle2 className="w-4 h-4 text-accent-500" />
                             </div>
                             <ul className="space-y-3">
-                                {result.suggestions?.map((s: string, i: number) => (
-                                    <li key={i} className="flex gap-4 p-3 glass rounded-2xl bg-white/[0.01] hover:bg-white/[0.03] transition-colors group">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-accent-500 mt-2 shrink-0 shadow-[0_0_10px_rgba(234,179,8,0.5)] group-hover:scale-150 transition-transform" />
-                                        <span className="text-xs text-neutral-300 font-medium leading-relaxed">{s}</span>
-                                    </li>
-                                ))}
+                                {!result.isAISourced && isUploading ? (
+                                    [1, 2, 3].map(i => (
+                                        <div key={i} className="h-10 bg-white/5 rounded-xl w-full animate-pulse" />
+                                    ))
+                                ) : (
+                                    result.suggestions?.map((s: string, i: number) => (
+                                        <li key={i} className="flex gap-4 p-3 glass rounded-2xl bg-white/[0.01] hover:bg-white/[0.03] transition-colors group">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-accent-500 mt-2 shrink-0 shadow-[0_0_10px_rgba(234,179,8,0.5)] group-hover:scale-150 transition-transform" />
+                                            <span className="text-xs text-neutral-300 font-medium leading-relaxed">{s}</span>
+                                        </li>
+                                    ))
+                                )}
                             </ul>
                         </div>
                     </div>
@@ -497,11 +528,15 @@ AUDIT TRAIL:
                             </div>
                             {result.alerts.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {result.alerts.map((a: string, i: number) => (
-                                        <div key={i} className="p-3 glass rounded-xl border-error-500/10 text-[11px] font-medium text-neutral-200">
-                                            {a}
-                                        </div>
-                                    ))}
+                                    {(!result.isAISourced && isUploading) ? (
+                                        [1, 2].map(i => <div key={i} className="h-12 bg-white/5 rounded-xl border border-white/5 animate-pulse" />)
+                                    ) : (
+                                        result.alerts.map((a: string, i: number) => (
+                                            <div key={i} className="p-3 glass rounded-xl border-error-500/10 text-[11px] font-medium text-neutral-200">
+                                                {a}
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                             ) : (
                                 <div className="p-4 text-center border border-dashed border-white/5 rounded-2xl">
