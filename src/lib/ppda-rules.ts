@@ -142,6 +142,21 @@ const PPDA_SECTIONS: Record<string, PPDASection> = {
         recommendation: 'Ensure tenders are opened immediately after deadline with public attendance allowed (Section 78)'
     },
 
+    section114A: {
+        number: 'Section 114A',
+        title: 'Specially Permitted Procurement',
+        keywords: ['specially permitted', 'national treasury', '114A', 'exceptional'],
+        severity: 'medium',
+        check: (text: string): boolean => {
+            const hasSpecially = /specially\s+permitted/i.test(text);
+            const hasTreasury = /national\s+treasury/i.test(text);
+            if (hasSpecially) return hasTreasury;
+            return true;
+        },
+        violation: 'Specially Permitted Procurement used without National Treasury approval',
+        recommendation: 'Ensure use of specially permitted procedure is allowed by National Treasury as per Section 114A'
+    },
+
     section80: {
         number: 'Section 80',
         title: 'Evaluation of Tenders',
@@ -259,7 +274,22 @@ const PPDA_SECTIONS: Record<string, PPDASection> = {
             return true;
         },
         violation: 'Preference and reservation schemes not properly implemented',
-        recommendation: 'Reserve minimum 30% for women, youth, and persons with disabilities (Section 155)'
+        recommendation: 'Reserve minimum 30% for women, youth, and persons with disabilities (Section 155 & Reg 163)'
+    },
+
+    regulation107: {
+        number: 'Regulation 107',
+        title: 'Specially Permitted Procedure (2020)',
+        keywords: ['regulation 107', 'permitted procedure', '2020 regulations'],
+        severity: 'medium',
+        check: (text: string): boolean => {
+            const hasReg = /regulation\s+107/i.test(text);
+            const hasProcedure = /permitted\s+procedure/i.test(text);
+            if (hasReg) return hasProcedure;
+            return true;
+        },
+        violation: 'Incomplete adherence to Specially Permitted Procedure regulations',
+        recommendation: 'Follow procedure for specially permitted procurements under Regulation 107 of 2020'
     }
 };
 

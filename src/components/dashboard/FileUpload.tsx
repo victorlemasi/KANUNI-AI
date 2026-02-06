@@ -522,9 +522,14 @@ AUDIT TRAIL:
                                         {result.isAISourced ? 'LLAMA-3-FORENSIC' : (result.auditTrail?.engine || 'RULE-ENGINE')}
                                     </span>
                                 </div>
-                                <div className="flex justify-between">
+                                <div className="flex justify-between items-center">
                                     <span className="text-neutral-600">COMPLIANCE</span>
-                                    <span className="text-accent-500 font-bold">{result.auditTrail?.regulatoryContext || 'PPDA_ACT_2021'}</span>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <span className="text-accent-500 font-bold">{result.auditTrail?.regulatoryContext || 'PPDA_ACT_2015'}</span>
+                                        <span className="bg-cyan-900/30 text-[8px] px-1.5 py-0.5 rounded border border-cyan-500/30 text-cyan-400 font-bold tracking-widest animate-pulse">
+                                            2020 REG-READY
+                                        </span>
+                                    </div>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-neutral-600">CONFIDENCE</span>

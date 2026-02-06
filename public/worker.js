@@ -60,10 +60,10 @@ self.addEventListener('message', async (event) => {
             // --- CHAIN OF THOUGHT PROMPT ENGINEERING ---
             const prompt = `
             [ROLE]
-            You are KANUNI AI, an elite Forensic Auditor with expertise in Procurement Law (PPDA), Contract Law, and Fraud Detection.
+            You are KANUNI AI, an elite Forensic Auditor with expertise in Kenyan Public Procurement Law (PPDA Act 2015), the Finance Act 2017, and the PPDA Regulations 2020.
 
             [TASK]
-            Analyze the provided document text for critical governance, risk, and compliance issues.
+            Analyze the provided document text for critical governance, risk, and compliance issues. You must prioritize the latest standards from the Finance Act 2017 (e.g., Section 114A Specially Permitted Procurement) and the 2020 Regulations.
             
             [INSTRUCTIONS]
             1.  **THINK STEP-BY-STEP**: First, mentally evaluate the document type, key dates, monetary values, and missing clauses.
